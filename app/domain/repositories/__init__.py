@@ -1,0 +1,3 @@
+"""
+Interfaces de repositorios (protocolos)
+"""
