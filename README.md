@@ -196,16 +196,14 @@ poetry run uvicorn app.main:app --reload
 
 ## Uso de la API
 
-### Autenticación
+### Documentación Interactiva
 
-Para ejemplos de uso de la API, consulte la documentación interactiva en Swagger:
+Para ejemplos de uso de la API, consulte la documentación interactiva:
 - Swagger UI: http://localhost:8000/api/docs
 - ReDoc: http://localhost:8000/api/redoc
 
-### Usuarios (Admin only)
-
-Para operaciones de administración de usuarios, utilice los endpoints correspondientes
-con la autorización adecuada. Consulte la documentación de la API para más detalles.
+Toda la documentación de endpoints, esquemas de datos y ejemplos de uso se encuentra
+disponible en estas interfaces interactivas.
 
 ---
 
