@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = Field(..., description="URL de Supabase")
     SUPABASE_KEY: str = Field(..., description="Clave anónima de Supabase")
     SUPABASE_SERVICE_ROLE_KEY: str = Field(..., description="Clave de servicio de Supabase (bypasa RLS)")
+    SUPABASE_DB_PASSWORD: str | None = Field(None, description="Contraseña de la base de datos de Supabase (solo si usas conexión directa a PostgreSQL)")
     SUPABASE_REALTIME_ENABLED: bool = True
 
     model_config = SettingsConfigDict(

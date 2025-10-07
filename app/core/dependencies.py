@@ -5,13 +5,16 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
 from app.core.security import decode_token
-from app.domain.entities.user import UserRole
-from app.infrastructure.database.repositories.user_repository_impl import (
-    UserRepositoryImpl,
+from app.domain.entities.supabase_user import UserRole
+from app.domain.use_cases.events.create_event import CreateEventUseCase
+from app.domain.use_cases.multimedia.create_multimedia import CreateMultimediaUseCase
+from app.infrastructure.database.repositories.event_repository_impl import (
+    EventRepositoryImpl,
+)
+from app.infrastructure.database.repositories.multimedia_repository_impl import (
+    MultimediaRepositoryImpl,
 )
 
 # OAuth2 scheme
@@ -45,14 +48,12 @@ async def get_current_user_id(token: Annotated[str, Depends(oauth2_scheme)]) -> 
 
 
 async def get_current_user(
-    db: Annotated[AsyncSession, Depends(get_db)],
     user_id: Annotated[int, Depends(get_current_user_id)],
 ) -> dict:
     """
-    Obtener usuario actual completo
+    Obtener usuario actual completo desde Supabase
 
     Args:
-        db: Sesión de base de datos
         user_id: ID del usuario
 
     Returns:
@@ -61,8 +62,13 @@ async def get_current_user(
     Raises:
         HTTPException: Si el usuario no existe o está inactivo
     """
-    repo = UserRepositoryImpl(db)
-    user = await repo.get_by_id(user_id)
+    from uuid import UUID
+    from app.infrastructure.database.repositories.supabase_user_repository_impl import (
+        SupabaseUserRepositoryImpl,
+    )
+
+    repo = SupabaseUserRepositoryImpl()
+    user = await repo.get_by_id(UUID(int=user_id))
 
     if not user:
         raise HTTPException(
@@ -75,12 +81,11 @@ async def get_current_user(
         )
 
     return {
-        "id": user.id,
+        "id": str(user.id),
         "email": user.email,
         "full_name": user.full_name,
         "role": user.role,
         "is_active": user.is_active,
-        "is_superuser": user.is_superuser,
     }
 
 
@@ -128,3 +133,33 @@ async def require_superadmin(
             detail="Permisos insuficientes. Se requiere rol de superadministrador",
         )
     return current_user
+
+
+# --- Casos de Uso ---
+
+def get_create_event_use_case() -> CreateEventUseCase:
+    """
+    Crea y devuelve una instancia del caso de uso para crear eventos.
+
+    Esta función actúa como un constructor para la inyección de dependencias de FastAPI.
+    Se encarga de instanciar el repositorio y luego el caso de uso.
+
+    Returns:
+        Una instancia de CreateEventUseCase.
+    """
+    event_repository = EventRepositoryImpl()
+    return CreateEventUseCase(event_repository=event_repository)
+
+
+def get_create_multimedia_use_case() -> CreateMultimediaUseCase:
+    """
+    Crea y devuelve una instancia del caso de uso para crear contenido multimedia.
+
+    Esta función actúa como un constructor para la inyección de dependencias de FastAPI.
+    Se encarga de instanciar el repositorio y luego el caso de uso.
+
+    Returns:
+        Una instancia de CreateMultimediaUseCase.
+    """
+    multimedia_repository = MultimediaRepositoryImpl()
+    return CreateMultimediaUseCase(multimedia_repository=multimedia_repository)

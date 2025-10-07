@@ -1,47 +1,26 @@
 """
-Configuración de base de datos con SQLAlchemy 2.0 async
+Configuración de base de datos con Supabase
 """
-from typing import AsyncGenerator
-
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase
+from supabase import Client, create_client
 
 from app.core.config import settings
 
-# Engine asíncrono
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DATABASE_ECHO,
-    pool_size=settings.DATABASE_POOL_SIZE,
-    max_overflow=settings.DATABASE_MAX_OVERFLOW,
-    pool_pre_ping=True,
-)
 
-# Session maker
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autocommit=False,
-    autoflush=False,
-)
-
-
-class Base(DeclarativeBase):
-    """Base class para modelos SQLAlchemy"""
-
-    pass
-
-
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+def get_supabase_client() -> Client:
     """
-    Dependency para obtener sesión de base de datos
+    Obtener cliente de Supabase
 
-    Yields:
-        AsyncSession: Sesión de base de datos
+    Returns:
+        Client: Cliente de Supabase configurado
     """
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+    return create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+
+
+def get_supabase_admin_client() -> Client:
+    """
+    Obtener cliente de Supabase con service role (admin)
+
+    Returns:
+        Client: Cliente de Supabase con privilegios de admin
+    """
+    return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)

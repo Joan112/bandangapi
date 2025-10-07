@@ -228,6 +228,28 @@ curl -X GET "http://localhost:8000/api/v1/users/me" \
   -H "Authorization: Bearer {access_token}"
 ```
 
+### Eventos
+
+#### Crear un nuevo evento
+
+**Nota:** Se requiere un token de un usuario autenticado.
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/events" \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer TU_SUPABASE_JWT" \
+-d '{
+    "name": "Ana García",
+    "email": "ana.garcia@example.com",
+    "phone": "+5215587654321",
+    "eventType": "XV Años",
+    "eventDate": "2026-04-15",
+    "location": "Terraza Real",
+    "guestCount": "100",
+    "message": "Cotizar también mesa de dulces."
+}'
+```
+
 ### Usuarios (Admin only)
 
 #### Listar usuarios

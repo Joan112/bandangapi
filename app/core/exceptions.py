@@ -55,3 +55,10 @@ class ValidationError(BandangWebException):
 
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
+
+class SupabaseError(BandangWebException):
+    """Error de Supabase"""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
