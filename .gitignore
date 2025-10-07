@@ -79,3 +79,6 @@ celerybeat.pid
 
 # Redis
 dump.rdb
+
+# Ejemplos CURL
+CURL_EXAMPLES.md

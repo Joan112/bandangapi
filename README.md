@@ -198,87 +198,14 @@ poetry run uvicorn app.main:app --reload
 
 ### Autenticación
 
-#### Registrar usuario
-```bash
-curl -X POST "http://localhost:8000/api/v1/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "usuario@example.com",
-    "password": "MiPassword123",
-    "full_name": "Usuario Ejemplo"
-  }'
-```
-
-#### Login
-```bash
-curl -X POST "http://localhost:8000/api/v1/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "usuario@example.com",
-    "password": "MiPassword123"
-  }'
-```
-
-Respuesta:
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer"
-}
-```
-
-#### Obtener usuario actual
-```bash
-curl -X GET "http://localhost:8000/api/v1/users/me" \
-  -H "Authorization: Bearer {access_token}"
-```
-
-### Eventos
-
-#### Crear un nuevo evento
-
-**Nota:** Se requiere un token de un usuario autenticado.
-
-```bash
-curl -X POST "http://localhost:8000/api/v1/events" \
--H "Content-Type: application/json" \
--H "Authorization: Bearer TU_SUPABASE_JWT" \
--d '{
-    "name": "Ana García",
-    "email": "ana.garcia@example.com",
-    "phone": "+5215587654321",
-    "eventType": "XV Años",
-    "eventDate": "2026-04-15",
-    "location": "Terraza Real",
-    "guestCount": "100",
-    "message": "Cotizar también mesa de dulces."
-}'
-```
+Para ejemplos de uso de la API, consulte la documentación interactiva en Swagger:
+- Swagger UI: http://localhost:8000/api/docs
+- ReDoc: http://localhost:8000/api/redoc
 
 ### Usuarios (Admin only)
 
-#### Listar usuarios
-```bash
-curl -X GET "http://localhost:8000/api/v1/users?page=1&page_size=10" \
-  -H "Authorization: Bearer {access_token}"
-```
-
-#### Obtener usuario por ID
-```bash
-curl -X GET "http://localhost:8000/api/v1/users/{user_id}" \
-  -H "Authorization: Bearer {access_token}"
-```
-
-#### Actualizar usuario
-```bash
-curl -X PATCH "http://localhost:8000/api/v1/users/{user_id}" \
-  -H "Authorization: Bearer {access_token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "full_name": "Nuevo Nombre"
-  }'
-```
+Para operaciones de administración de usuarios, utilice los endpoints correspondientes
+con la autorización adecuada. Consulte la documentación de la API para más detalles.
 
 ---
 
