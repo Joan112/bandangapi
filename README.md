@@ -34,6 +34,12 @@ Backend API completo con **Clean Architecture**, **FastAPI**, **PostgreSQL** y s
 - CORS configurado
 - Structured logging
 
+### CI/CD
+- Integración continua con GitHub Actions
+- Pruebas automatizadas en cada push
+- Análisis de calidad de código
+- Despliegue automatizado
+
 ### Funcionalidades
 - Registro y autenticación de usuarios
 - Login con JWT
