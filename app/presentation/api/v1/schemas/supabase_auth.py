@@ -4,19 +4,20 @@ Esquemas Pydantic para autenticación con Supabase
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import EmailStr, Field
 
 from app.domain.entities.supabase_user import UserRole
+from app.presentation.api.v1.schemas.base import TrimmedModel
 
 
-class RegisterRequest(BaseModel):
+class RegisterRequest(TrimmedModel):
     """Esquema para registro de usuario"""
     email: EmailStr = Field(..., description="Email del usuario")
     password: str = Field(..., min_length=8, description="Contraseña del usuario")
     full_name: Optional[str] = Field(None, description="Nombre completo del usuario")
 
 
-class UserResponse(BaseModel):
+class UserResponse(TrimmedModel):
     """Esquema de respuesta de usuario"""
     id: UUID = Field(..., description="ID del usuario")
     email: str = Field(..., description="Email del usuario")
@@ -30,7 +31,7 @@ class UserResponse(BaseModel):
         use_enum_values = True
 
 
-class AuthResponse(BaseModel):
+class AuthResponse(TrimmedModel):
     """Esquema de respuesta de autenticación"""
     user: UserResponse = Field(..., description="Datos del usuario")
     access_token: str = Field(..., description="Access token JWT")

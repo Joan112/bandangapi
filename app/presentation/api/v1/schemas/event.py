@@ -1,11 +1,13 @@
 """
 Esquemas Pydantic para la validación de datos de Eventos.
 """
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import EmailStr, Field
 from datetime import date, datetime
 from typing import Optional
 from enum import Enum
 import uuid
+
+from app.presentation.api.v1.schemas.base import TrimmedModel
 
 class EventStatus(str, Enum):
     """Enum para los posibles estados de un evento."""
@@ -13,7 +15,7 @@ class EventStatus(str, Enum):
     CONFIRMED = "confirmed"
     CANCELLED = "cancelled"
 
-class EventBase(BaseModel):
+class EventBase(TrimmedModel):
     """Esquema base para un evento, con los campos comunes."""
     name: str = Field(..., description="Nombre del cliente", max_length=100)
     email: EmailStr = Field(..., description="Correo electrónico del cliente")

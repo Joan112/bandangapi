@@ -5,18 +5,19 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import Field, HttpUrl
 
 from app.domain.entities.multimedia import MultimediaType
+from app.presentation.api.v1.schemas.base import TrimmedModel
 
 
-class MultimediaDimensions(BaseModel):
+class MultimediaDimensions(TrimmedModel):
     """Dimensiones de una imagen"""
     width: int = Field(..., description="Ancho en píxeles", gt=0)
     height: int = Field(..., description="Alto en píxeles", gt=0)
 
 
-class MultimediaBase(BaseModel):
+class MultimediaBase(TrimmedModel):
     """Esquema base para multimedia"""
     type: MultimediaType = Field(..., description="Tipo de contenido (image o video)")
     title: str = Field(..., description="Título descriptivo", max_length=200)
@@ -62,7 +63,7 @@ class MultimediaCreate(MultimediaBase):
         populate_by_name = True
 
 
-class MultimediaUpdate(BaseModel):
+class MultimediaUpdate(TrimmedModel):
     """Esquema para actualizar contenido multimedia"""
     title: Optional[str] = Field(None, description="Título descriptivo", max_length=200)
     description: Optional[str] = Field(None, description="Descripción detallada")
@@ -89,7 +90,7 @@ class MultimediaRead(MultimediaBase):
         populate_by_name = True
 
 
-class MultimediaListResponse(BaseModel):
+class MultimediaListResponse(TrimmedModel):
     """Respuesta con lista de contenido multimedia"""
     items: list[MultimediaRead] = Field(..., description="Lista de contenidos multimedia")
     total: int = Field(..., description="Total de elementos", ge=0)
