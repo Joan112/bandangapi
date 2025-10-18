@@ -1,6 +1,9 @@
 """
 Caso de uso para crear contenido multimedia.
 """
+
+from typing import Any
+
 from app.domain.entities.multimedia import Multimedia
 from app.domain.repositories.multimedia_repository import MultimediaRepository
 
@@ -12,7 +15,7 @@ class CreateMultimediaUseCase:
     Aplica las reglas de negocio para la creación de contenido multimedia.
     """
 
-    def __init__(self, multimedia_repository: MultimediaRepository):
+    def __init__(self, multimedia_repository: MultimediaRepository) -> None:
         """
         Inicializa el caso de uso con el repositorio.
 
@@ -21,7 +24,7 @@ class CreateMultimediaUseCase:
         """
         self._repository = multimedia_repository
 
-    async def execute(self, multimedia_data: dict) -> Multimedia:
+    async def execute(self, multimedia_data: dict[str, Any]) -> Multimedia:
         """
         Ejecuta la creación de un nuevo contenido multimedia.
 

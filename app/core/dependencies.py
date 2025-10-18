@@ -1,6 +1,7 @@
 """
 FastAPI dependencies globales
 """
+
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -18,10 +19,10 @@ from app.infrastructure.database.repositories.multimedia_repository_impl import 
 )
 
 # OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
-async def get_current_user_id(token: Annotated[str, Depends(oauth2_scheme)]) -> int:
+async def get_current_user_id(token: Annotated[str, Depends(oauth2_scheme)]) -> str:
     """
     Obtener ID del usuario actual desde el token JWT
 
@@ -29,7 +30,7 @@ async def get_current_user_id(token: Annotated[str, Depends(oauth2_scheme)]) -> 
         token: Token JWT
 
     Returns:
-        ID del usuario
+        ID del usuario (UUID as string)
 
     Raises:
         HTTPException: Si el token es inválido
@@ -44,31 +45,32 @@ async def get_current_user_id(token: Annotated[str, Depends(oauth2_scheme)]) -> 
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return int(user_id)
+    return user_id
 
 
 async def get_current_user(
-    user_id: Annotated[int, Depends(get_current_user_id)],
-) -> dict:
+    user_id: Annotated[str, Depends(get_current_user_id)],
+):
     """
     Obtener usuario actual completo desde Supabase
 
     Args:
-        user_id: ID del usuario
+        user_id: ID del usuario (UUID as string)
 
     Returns:
-        Usuario completo
+        Usuario completo (SupabaseUser)
 
     Raises:
         HTTPException: Si el usuario no existe o está inactivo
     """
     from uuid import UUID
+
     from app.infrastructure.database.repositories.supabase_user_repository_impl import (
         SupabaseUserRepositoryImpl,
     )
 
     repo = SupabaseUserRepositoryImpl()
-    user = await repo.get_by_id(UUID(int=user_id))
+    user = await repo.get_by_id(UUID(user_id))
 
     if not user:
         raise HTTPException(
@@ -80,18 +82,45 @@ async def get_current_user(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Usuario inactivo"
         )
 
-    return {
-        "id": str(user.id),
-        "email": user.email,
-        "full_name": user.full_name,
-        "role": user.role,
-        "is_active": user.is_active,
-    }
+    return user
 
 
-async def require_admin(
-    current_user: Annotated[dict, Depends(get_current_user)]
-) -> dict:
+def require_role(required_role: str):
+    """
+    Factory para crear dependency que requiere un rol específico
+
+    Args:
+        required_role: Rol requerido ("USER", "ADMIN", "SUPERADMIN")
+
+    Returns:
+        Dependency function
+    """
+
+    async def role_dependency(current_user=Depends(get_current_user)):
+        """Verificar que el usuario tiene el rol requerido"""
+
+        # Orden jerárquico de roles
+        role_hierarchy = {
+            "USER": 1,
+            "ADMIN": 2,
+            "SUPERADMIN": 3,
+        }
+
+        user_role_level = role_hierarchy.get(current_user.role, 0)
+        required_role_level = role_hierarchy.get(required_role, 999)
+
+        if user_role_level < required_role_level:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permisos insuficientes. Se requiere rol {required_role} o superior",
+            )
+
+        return current_user
+
+    return role_dependency
+
+
+async def require_admin(current_user=Depends(get_current_user)):
     """
     Requiere que el usuario sea administrador
 
@@ -104,7 +133,7 @@ async def require_admin(
     Raises:
         HTTPException: Si el usuario no es admin
     """
-    if current_user["role"] not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPERADMIN]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Permisos insuficientes. Se requiere rol de administrador",
@@ -112,9 +141,7 @@ async def require_admin(
     return current_user
 
 
-async def require_superadmin(
-    current_user: Annotated[dict, Depends(get_current_user)]
-) -> dict:
+async def require_superadmin(current_user=Depends(get_current_user)):
     """
     Requiere que el usuario sea superadmin
 
@@ -127,7 +154,7 @@ async def require_superadmin(
     Raises:
         HTTPException: Si el usuario no es superadmin
     """
-    if current_user["role"] != UserRole.SUPERADMIN:
+    if current_user.role != UserRole.SUPERADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Permisos insuficientes. Se requiere rol de superadministrador",
@@ -136,6 +163,7 @@ async def require_superadmin(
 
 
 # --- Casos de Uso ---
+
 
 def get_create_event_use_case() -> CreateEventUseCase:
     """

@@ -80,5 +80,8 @@ celerybeat.pid
 # Redis
 dump.rdb
 
+# Requirements files (generados desde Poetry)
+requirements*.txt
+
 # Quick start scripts
 start_dev.sh

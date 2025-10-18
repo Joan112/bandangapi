@@ -1,10 +1,11 @@
 """
 Tests de integración para endpoints de usuarios
 """
+
 import pytest
 from httpx import AsyncClient
 
-from app.domain.entities.user import UserRole
+from app.domain.entities.supabase_user import UserRole
 
 
 @pytest.mark.asyncio
@@ -19,10 +20,10 @@ async def test_get_current_user(client: AsyncClient, sample_user_data):
             "password": sample_user_data["password"],
         },
     )
-    tokens = login_response.json()
+    auth_data = login_response.json()
 
     # Obtener usuario actual
-    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+    headers = {"Authorization": f"Bearer {auth_data['access_token']}"}
     response = await client.get("/api/v1/users/me", headers=headers)
 
     assert response.status_code == 200
@@ -48,10 +49,10 @@ async def test_list_users_as_admin(client: AsyncClient):
         "/api/v1/auth/login",
         json={"email": admin_data["email"], "password": admin_data["password"]},
     )
-    tokens = login_response.json()
+    auth_data = login_response.json()
 
     # Listar usuarios
-    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+    headers = {"Authorization": f"Bearer {auth_data['access_token']}"}
     response = await client.get("/api/v1/users", headers=headers)
 
     assert response.status_code == 200
@@ -75,10 +76,10 @@ async def test_list_users_as_regular_user(client: AsyncClient, sample_user_data)
             "password": sample_user_data["password"],
         },
     )
-    tokens = login_response.json()
+    auth_data = login_response.json()
 
     # Intentar listar usuarios (debe fallar)
-    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+    headers = {"Authorization": f"Bearer {auth_data['access_token']}"}
     response = await client.get("/api/v1/users", headers=headers)
 
     assert response.status_code == 403
@@ -94,7 +95,7 @@ async def test_update_user_as_admin(client: AsyncClient):
         "full_name": "Regular User",
     }
     user_response = await client.post("/api/v1/auth/register", json=user_data)
-    user_id = user_response.json()["id"]
+    user_id = user_response.json()["user"]["id"]
 
     # Crear admin
     admin_data = {
@@ -110,10 +111,10 @@ async def test_update_user_as_admin(client: AsyncClient):
         "/api/v1/auth/login",
         json={"email": admin_data["email"], "password": admin_data["password"]},
     )
-    tokens = login_response.json()
+    auth_data = login_response.json()
 
     # Actualizar usuario
-    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+    headers = {"Authorization": f"Bearer {auth_data['access_token']}"}
     update_data = {"full_name": "Updated Name"}
     response = await client.patch(
         f"/api/v1/users/{user_id}", json=update_data, headers=headers

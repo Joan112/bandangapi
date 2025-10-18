@@ -1,15 +1,18 @@
 """
 Define la entidad de dominio para un Evento.
 """
-from pydantic import BaseModel, EmailStr, Field
-from datetime import date, datetime
-from typing import Optional
-import uuid
 
-from app.presentation.api.v1.schemas.event import EventStatus
+import uuid
+from datetime import date, datetime
+
+from pydantic import BaseModel, EmailStr
+
+from app.domain.value_objects.event_status import EventStatus
+
 
 class Event(BaseModel):
     """Representa un evento en el dominio de la aplicación."""
+
     id: uuid.UUID
     name: str
     email: EmailStr
@@ -18,7 +21,7 @@ class Event(BaseModel):
     event_date: date
     location: str
     guest_count: str
-    message: Optional[str] = None
+    message: str | None = None
     status: EventStatus
     created_at: datetime
     updated_at: datetime

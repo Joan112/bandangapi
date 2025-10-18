@@ -1,13 +1,16 @@
 """
 Implementación del repositorio de eventos con Supabase.
 """
+
+from dataclasses import asdict
+
 from postgrest.exceptions import APIError
 
 from app.core.exceptions import SupabaseError
 from app.domain.entities.event import Event
+from app.domain.entities.event_dto import EventCreateDTO
 from app.domain.repositories.event_repository import EventRepository
 from app.infrastructure.external.supabase import supabase_client
-from app.presentation.api.v1.schemas.event import EventCreate
 
 
 class EventRepositoryImpl(EventRepository):
@@ -15,17 +18,17 @@ class EventRepositoryImpl(EventRepository):
     Implementación concreta del repositorio de eventos que interactúa con Supabase.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Inicializa el repositorio con el cliente de Supabase."""
         self._supabase_client = supabase_client
         self._table_name = "eventos"
 
-    async def create(self, event_data: EventCreate) -> Event:
+    async def create(self, event_data: EventCreateDTO) -> Event:
         """
         Crea un nuevo evento en la base de datos Supabase.
 
         Args:
-            event_data: Datos del evento a crear (esquema Pydantic).
+            event_data: Datos del evento a crear (DTO de dominio).
 
         Returns:
             La entidad del evento recién creado.
@@ -37,9 +40,12 @@ class EventRepositoryImpl(EventRepository):
             # Usar cliente admin para bypassar RLS
             client = await self._supabase_client.admin_client
 
-            # Convertir el esquema Pydantic a un diccionario sin alias (nombres de columnas reales)
-            # mode='json' serializa date/datetime a strings ISO 8601
-            event_dict = event_data.model_dump(by_alias=False, mode='json')
+            # Convertir el DTO (dataclass) a diccionario
+            event_dict = asdict(event_data)
+
+            # Convertir date a string ISO 8601 para Supabase
+            if event_dict.get("event_date"):
+                event_dict["event_date"] = event_dict["event_date"].isoformat()
 
             response = await client.table(self._table_name).insert(event_dict).execute()
 
@@ -54,7 +60,9 @@ class EventRepositoryImpl(EventRepository):
 
         except APIError as e:
             # Capturar errores específicos de la API de PostgREST/Supabase
-            raise SupabaseError(f"Error de API al crear el evento: {e.message}")
+            raise SupabaseError(f"Error de API al crear el evento: {e.message}") from e
         except Exception as e:
             # Capturar cualquier otro error inesperado
-            raise SupabaseError(f"Un error inesperado ocurrió al crear el evento: {e}")
+            raise SupabaseError(
+                f"Un error inesperado ocurrió al crear el evento: {e}"
+            ) from e

@@ -3,13 +3,13 @@ Excepciones personalizadas
 """
 
 
-class BandangWebException(Exception):
+class BandangWebError(Exception):
     """Base exception para la aplicación"""
 
     pass
 
 
-class EntityNotFoundError(BandangWebException):
+class EntityNotFoundError(BandangWebError):
     """Entidad no encontrada"""
 
     def __init__(self, entity: str, entity_id: str | int) -> None:
@@ -18,7 +18,7 @@ class EntityNotFoundError(BandangWebException):
         super().__init__(f"{entity} con ID {entity_id} no encontrado")
 
 
-class DuplicateEntityError(BandangWebException):
+class DuplicateEntityError(BandangWebError):
     """Entidad duplicada"""
 
     def __init__(self, entity: str, field: str, value: str) -> None:
@@ -28,14 +28,14 @@ class DuplicateEntityError(BandangWebException):
         super().__init__(f"{entity} con {field}='{value}' ya existe")
 
 
-class InvalidCredentialsError(BandangWebException):
+class InvalidCredentialsError(BandangWebError):
     """Credenciales inválidas"""
 
     def __init__(self, message: str = "Email o password incorrectos") -> None:
         super().__init__(message)
 
 
-class InsufficientPermissionsError(BandangWebException):
+class InsufficientPermissionsError(BandangWebError):
     """Permisos insuficientes"""
 
     def __init__(self, required_role: str) -> None:
@@ -43,21 +43,21 @@ class InsufficientPermissionsError(BandangWebException):
         super().__init__(f"Se requiere rol '{required_role}' para esta acción")
 
 
-class InvalidTokenError(BandangWebException):
+class InvalidTokenError(BandangWebError):
     """Token inválido"""
 
     def __init__(self, message: str = "Token inválido o expirado") -> None:
         super().__init__(message)
 
 
-class ValidationError(BandangWebException):
+class ValidationError(BandangWebError):
     """Error de validación"""
 
     def __init__(self, message: str) -> None:
         super().__init__(message)
 
 
-class SupabaseError(BandangWebException):
+class SupabaseError(BandangWebError):
     """Error de Supabase"""
 
     def __init__(self, message: str) -> None:

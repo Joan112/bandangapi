@@ -1,6 +1,7 @@
 """
 Configuración de base de datos con Supabase
 """
+
 from supabase import Client, create_client
 
 from app.core.config import settings

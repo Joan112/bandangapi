@@ -1,13 +1,13 @@
 """
 Middleware para logging de requests y responses
 """
+
+import logging
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-
-import logging
 
 logger = logging.getLogger(__name__)
 

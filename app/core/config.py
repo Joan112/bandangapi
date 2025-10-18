@@ -1,6 +1,7 @@
 """
 Configuración centralizada con Pydantic Settings
 """
+
 from functools import lru_cache
 from typing import Literal
 
@@ -41,7 +42,7 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
-        
+
     # ==================== RATE LIMITING ====================
     RATE_LIMIT_PER_MINUTE: int = 60
     RATE_LIMIT_PER_HOUR: int = 1000
@@ -62,12 +63,17 @@ class Settings(BaseSettings):
     # ==================== LOGGING ====================
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     LOG_FORMAT: str = "json"  # json | text
-    
+
     # ==================== SUPABASE ====================
     SUPABASE_URL: str = Field(..., description="URL de Supabase")
     SUPABASE_KEY: str = Field(..., description="Clave anónima de Supabase")
-    SUPABASE_SERVICE_ROLE_KEY: str = Field(..., description="Clave de servicio de Supabase (bypasa RLS)")
-    SUPABASE_DB_PASSWORD: str | None = Field(None, description="Contraseña de la base de datos de Supabase (solo si usas conexión directa a PostgreSQL)")
+    SUPABASE_SERVICE_ROLE_KEY: str = Field(
+        ..., description="Clave de servicio de Supabase (bypasa RLS)"
+    )
+    SUPABASE_DB_PASSWORD: str | None = Field(
+        None,
+        description="Contraseña de la base de datos de Supabase (solo si usas conexión directa a PostgreSQL)",
+    )
     SUPABASE_REALTIME_ENABLED: bool = True
 
     model_config = SettingsConfigDict(

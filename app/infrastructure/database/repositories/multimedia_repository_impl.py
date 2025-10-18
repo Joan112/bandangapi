@@ -1,7 +1,8 @@
 """
 Implementación del repositorio de multimedia con Supabase.
 """
-from typing import Optional
+
+from typing import Any
 from uuid import UUID
 
 from postgrest.exceptions import APIError
@@ -17,12 +18,12 @@ class MultimediaRepositoryImpl(MultimediaRepository):
     Implementación concreta del repositorio de multimedia que interactúa con Supabase.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Inicializa el repositorio con el cliente de Supabase."""
         self._supabase_client = supabase_client
         self._table_name = "multimedia"
 
-    async def create(self, multimedia_data: dict) -> Multimedia:
+    async def create(self, multimedia_data: dict[str, Any]) -> Multimedia:
         """
         Crea un nuevo contenido multimedia en Supabase.
 
@@ -39,20 +40,28 @@ class MultimediaRepositoryImpl(MultimediaRepository):
             # Usar cliente admin para bypassar RLS
             client = await self._supabase_client.admin_client
 
-            response = await client.table(self._table_name).insert(multimedia_data).execute()
+            response = (
+                await client.table(self._table_name).insert(multimedia_data).execute()
+            )
 
             if not response.data or len(response.data) == 0:
-                raise SupabaseError("La inserción del contenido multimedia no devolvió datos.")
+                raise SupabaseError(
+                    "La inserción del contenido multimedia no devolvió datos."
+                )
 
             created_data = response.data[0]
             return Multimedia.model_validate(created_data)
 
         except APIError as e:
-            raise SupabaseError(f"Error de API al crear contenido multimedia: {e.message}")
+            raise SupabaseError(
+                f"Error de API al crear contenido multimedia: {e.message}"
+            ) from e
         except Exception as e:
-            raise SupabaseError(f"Error inesperado al crear contenido multimedia: {e}")
+            raise SupabaseError(
+                f"Error inesperado al crear contenido multimedia: {e}"
+            ) from e
 
-    async def get_by_id(self, multimedia_id: UUID) -> Optional[Multimedia]:
+    async def get_by_id(self, multimedia_id: UUID) -> Multimedia | None:
         """
         Obtiene un contenido multimedia por su ID.
 
@@ -65,7 +74,12 @@ class MultimediaRepositoryImpl(MultimediaRepository):
         try:
             client = await self._supabase_client.client
 
-            response = await client.table(self._table_name).select("*").eq("id", str(multimedia_id)).execute()
+            response = (
+                await client.table(self._table_name)
+                .select("*")
+                .eq("id", str(multimedia_id))
+                .execute()
+            )
 
             if not response.data or len(response.data) == 0:
                 return None
@@ -73,16 +87,16 @@ class MultimediaRepositoryImpl(MultimediaRepository):
             return Multimedia.model_validate(response.data[0])
 
         except Exception as e:
-            raise SupabaseError(f"Error al obtener contenido multimedia: {e}")
+            raise SupabaseError(f"Error al obtener contenido multimedia: {e}") from e
 
     async def list_all(
         self,
         skip: int = 0,
         limit: int = 100,
-        category: Optional[str] = None,
-        type: Optional[str] = None,
-        is_published: Optional[bool] = None,
-        featured: Optional[bool] = None,
+        category: str | None = None,
+        type: str | None = None,
+        is_published: bool | None = None,
+        featured: bool | None = None,
     ) -> list[Multimedia]:
         """
         Lista contenidos multimedia con filtros opcionales.
@@ -127,9 +141,11 @@ class MultimediaRepositoryImpl(MultimediaRepository):
             return [Multimedia.model_validate(item) for item in response.data]
 
         except Exception as e:
-            raise SupabaseError(f"Error al listar contenidos multimedia: {e}")
+            raise SupabaseError(f"Error al listar contenidos multimedia: {e}") from e
 
-    async def update(self, multimedia_id: UUID, multimedia_data: dict) -> Multimedia:
+    async def update(
+        self, multimedia_id: UUID, multimedia_data: dict[str, Any]
+    ) -> Multimedia:
         """
         Actualiza un contenido multimedia existente.
 
@@ -152,19 +168,30 @@ class MultimediaRepositoryImpl(MultimediaRepository):
 
             client = await self._supabase_client.admin_client
 
-            response = await client.table(self._table_name).update(multimedia_data).eq("id", str(multimedia_id)).execute()
+            response = (
+                await client.table(self._table_name)
+                .update(multimedia_data)
+                .eq("id", str(multimedia_id))
+                .execute()
+            )
 
             if not response.data or len(response.data) == 0:
-                raise SupabaseError("La actualización del contenido multimedia no devolvió datos.")
+                raise SupabaseError(
+                    "La actualización del contenido multimedia no devolvió datos."
+                )
 
             return Multimedia.model_validate(response.data[0])
 
         except EntityNotFoundError:
             raise
         except APIError as e:
-            raise SupabaseError(f"Error de API al actualizar contenido multimedia: {e.message}")
+            raise SupabaseError(
+                f"Error de API al actualizar contenido multimedia: {e.message}"
+            ) from e
         except Exception as e:
-            raise SupabaseError(f"Error inesperado al actualizar contenido multimedia: {e}")
+            raise SupabaseError(
+                f"Error inesperado al actualizar contenido multimedia: {e}"
+            ) from e
 
     async def delete(self, multimedia_id: UUID) -> bool:
         """
@@ -188,13 +215,19 @@ class MultimediaRepositoryImpl(MultimediaRepository):
 
             client = await self._supabase_client.admin_client
 
-            await client.table(self._table_name).delete().eq("id", str(multimedia_id)).execute()
+            await client.table(self._table_name).delete().eq(
+                "id", str(multimedia_id)
+            ).execute()
 
             return True
 
         except EntityNotFoundError:
             raise
         except APIError as e:
-            raise SupabaseError(f"Error de API al eliminar contenido multimedia: {e.message}")
+            raise SupabaseError(
+                f"Error de API al eliminar contenido multimedia: {e.message}"
+            ) from e
         except Exception as e:
-            raise SupabaseError(f"Error inesperado al eliminar contenido multimedia: {e}")
+            raise SupabaseError(
+                f"Error inesperado al eliminar contenido multimedia: {e}"
+            ) from e

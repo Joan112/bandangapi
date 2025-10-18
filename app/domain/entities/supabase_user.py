@@ -1,15 +1,16 @@
 """
 Entidad de dominio: Usuario para Supabase
 """
+
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 from uuid import UUID
 
 
 class UserRole(str, Enum):
     """Roles de usuario"""
+
     USER = "user"
     ADMIN = "admin"
     SUPERADMIN = "superadmin"
@@ -21,19 +22,20 @@ class SupabaseUser:
     Entidad SupabaseUser del dominio
     Representa un usuario en el sistema usando Supabase Auth
     """
+
     id: UUID
     email: str
-    full_name: Optional[str]
+    full_name: str | None
     role: UserRole
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    
+
     # Campos opcionales que pueden venir de Supabase Auth
-    email_confirmed_at: Optional[datetime] = None
-    last_sign_in_at: Optional[datetime] = None
-    phone: Optional[str] = None
-    
+    email_confirmed_at: datetime | None = None
+    last_sign_in_at: datetime | None = None
+    phone: str | None = None
+
     def has_role(self, required_role: UserRole) -> bool:
         """
         Verificar si el usuario tiene un rol específico o superior
@@ -74,38 +76,45 @@ class SupabaseUser:
             return True
 
         return False
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "SupabaseUser":
         """
         Crear una instancia de SupabaseUser desde un diccionario
-        
+
         Args:
             data: Diccionario con datos del usuario
-            
+
         Returns:
             Instancia de SupabaseUser
         """
         # Convertir role a enum si viene como string
         if "role" in data and isinstance(data["role"], str):
             data["role"] = UserRole(data["role"])
-            
+
         # Convertir fechas a datetime si es necesario
-        for field in ["created_at", "updated_at", "email_confirmed_at", "last_sign_in_at"]:
+        for field in [
+            "created_at",
+            "updated_at",
+            "email_confirmed_at",
+            "last_sign_in_at",
+        ]:
             if field in data and data[field] and not isinstance(data[field], datetime):
                 if isinstance(data[field], str):
-                    data[field] = datetime.fromisoformat(data[field].replace("Z", "+00:00"))
-                    
+                    data[field] = datetime.fromisoformat(
+                        data[field].replace("Z", "+00:00")
+                    )
+
         # Convertir id a UUID si es necesario
         if "id" in data and not isinstance(data["id"], UUID):
             data["id"] = UUID(data["id"])
-                
+
         return cls(**data)
-    
+
     def to_dict(self) -> dict:
         """
         Convertir la entidad a un diccionario
-        
+
         Returns:
             Diccionario con los datos del usuario
         """
@@ -117,18 +126,18 @@ class SupabaseUser:
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
-        
+
         # Agregar campos opcionales si tienen valor
         if self.full_name:
             result["full_name"] = self.full_name
-            
+
         if self.email_confirmed_at:
             result["email_confirmed_at"] = self.email_confirmed_at.isoformat()
-            
+
         if self.last_sign_in_at:
             result["last_sign_in_at"] = self.last_sign_in_at.isoformat()
-            
+
         if self.phone:
             result["phone"] = self.phone
-            
+
         return result

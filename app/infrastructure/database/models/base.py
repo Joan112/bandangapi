@@ -1,6 +1,7 @@
 """
 Base model con campos comunes
 """
+
 from datetime import datetime
 
 from sqlalchemy import DateTime, func

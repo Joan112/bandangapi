@@ -1,8 +1,8 @@
 """
 Interfaz del repositorio de multimedia (puerto en arquitectura hexagonal).
 """
+
 from abc import ABC, abstractmethod
-from typing import Optional
 from uuid import UUID
 
 from app.domain.entities.multimedia import Multimedia
@@ -28,7 +28,7 @@ class MultimediaRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_id(self, multimedia_id: UUID) -> Optional[Multimedia]:
+    async def get_by_id(self, multimedia_id: UUID) -> Multimedia | None:
         """
         Obtiene un contenido multimedia por su ID.
 
@@ -45,10 +45,10 @@ class MultimediaRepository(ABC):
         self,
         skip: int = 0,
         limit: int = 100,
-        category: Optional[str] = None,
-        type: Optional[str] = None,
-        is_published: Optional[bool] = None,
-        featured: Optional[bool] = None,
+        category: str | None = None,
+        type: str | None = None,
+        is_published: bool | None = None,
+        featured: bool | None = None,
     ) -> list[Multimedia]:
         """
         Lista contenidos multimedia con filtros opcionales.

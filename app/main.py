@@ -1,10 +1,12 @@
 """
 Aplicación principal FastAPI
 """
+
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
@@ -12,14 +14,13 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.core.exceptions import (
-    BandangWebException,
+    BandangWebError,
     DuplicateEntityError,
     EntityNotFoundError,
     InsufficientPermissionsError,
     InvalidCredentialsError,
     ValidationError,
 )
-
 from app.presentation.api.router import api_router
 from app.presentation.middleware.logging import LoggingMiddleware
 from app.presentation.middleware.rate_limit import get_rate_limiter
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Lifecycle events de la aplicación
 
@@ -105,7 +106,9 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 # Exception handlers personalizados
 @app.exception_handler(EntityNotFoundError)
-async def entity_not_found_handler(request, exc: EntityNotFoundError):
+async def entity_not_found_handler(
+    request: Request, exc: EntityNotFoundError
+) -> JSONResponse:
     """Handler para EntityNotFoundError"""
     return JSONResponse(
         status_code=404, content={"detail": str(exc), "entity": exc.entity}
@@ -113,7 +116,9 @@ async def entity_not_found_handler(request, exc: EntityNotFoundError):
 
 
 @app.exception_handler(DuplicateEntityError)
-async def duplicate_entity_handler(request, exc: DuplicateEntityError):
+async def duplicate_entity_handler(
+    request: Request, exc: DuplicateEntityError
+) -> JSONResponse:
     """Handler para DuplicateEntityError"""
     return JSONResponse(
         status_code=400,
@@ -127,7 +132,9 @@ async def duplicate_entity_handler(request, exc: DuplicateEntityError):
 
 
 @app.exception_handler(InvalidCredentialsError)
-async def invalid_credentials_handler(request, exc: InvalidCredentialsError):
+async def invalid_credentials_handler(
+    request: Request, exc: InvalidCredentialsError
+) -> JSONResponse:
     """Handler para InvalidCredentialsError"""
     return JSONResponse(
         status_code=401,
@@ -137,7 +144,9 @@ async def invalid_credentials_handler(request, exc: InvalidCredentialsError):
 
 
 @app.exception_handler(InsufficientPermissionsError)
-async def insufficient_permissions_handler(request, exc: InsufficientPermissionsError):
+async def insufficient_permissions_handler(
+    request: Request, exc: InsufficientPermissionsError
+) -> JSONResponse:
     """Handler para InsufficientPermissionsError"""
     return JSONResponse(
         status_code=403,
@@ -146,20 +155,24 @@ async def insufficient_permissions_handler(request, exc: InsufficientPermissions
 
 
 @app.exception_handler(ValidationError)
-async def validation_error_handler(request, exc: ValidationError):
+async def validation_error_handler(
+    request: Request, exc: ValidationError
+) -> JSONResponse:
     """Handler para ValidationError"""
     return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
-@app.exception_handler(BandangWebException)
-async def bandangweb_exception_handler(request, exc: BandangWebException):
+@app.exception_handler(BandangWebError)
+async def bandangweb_exception_handler(
+    request: Request, exc: BandangWebError
+) -> JSONResponse:
     """Handler genérico para excepciones de la aplicación"""
     return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 # Root endpoint
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
     """Endpoint raíz"""
     return {
         "message": "BandangWeb API",

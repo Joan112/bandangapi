@@ -1,17 +1,18 @@
 """
 Define la interfaz (contrato) para el repositorio de eventos.
 """
+
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from app.domain.entities.event import Event
-from app.presentation.api.v1.schemas.event import EventCreate
+from app.domain.entities.event_dto import EventCreateDTO
+
 
 class EventRepository(ABC):
     """Clase base abstracta para el repositorio de eventos."""
 
     @abstractmethod
-    async def create(self, event_data: EventCreate) -> Event:
+    async def create(self, event_data: EventCreateDTO) -> Event:
         """Crea un nuevo evento en la base de datos."""
         pass
 

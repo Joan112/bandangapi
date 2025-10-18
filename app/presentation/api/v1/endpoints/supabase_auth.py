@@ -1,11 +1,15 @@
 """
 Endpoints para autenticación con Supabase
 """
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.exceptions import DuplicateEntityError, InvalidCredentialsError
 from app.domain.entities.supabase_user import UserRole
-from app.domain.use_cases.auth import LoginUserSupabaseUseCase, RegisterUserSupabaseUseCase
+from app.domain.use_cases.auth import (
+    LoginUserSupabaseUseCase,
+    RegisterUserSupabaseUseCase,
+)
 from app.infrastructure.database.repositories.supabase_user_repository_impl import (
     SupabaseUserRepositoryImpl,
 )
@@ -16,13 +20,13 @@ from app.presentation.api.v1.schemas.supabase_auth import (
     UserResponse,
 )
 
-router = APIRouter(prefix="/supabase", tags=["supabase-auth"])
+router = APIRouter(prefix="/supabase", tags=["auth"])
 
 
-def get_supabase_user_repository():
+def get_supabase_user_repository() -> SupabaseUserRepositoryImpl:
     """
     Obtener repositorio de usuarios con Supabase
-    
+
     Returns:
         Repositorio de usuarios
     """
@@ -30,14 +34,14 @@ def get_supabase_user_repository():
 
 
 def get_register_use_case(
-    repository=Depends(get_supabase_user_repository),
-):
+    repository: SupabaseUserRepositoryImpl = Depends(get_supabase_user_repository),
+) -> RegisterUserSupabaseUseCase:
     """
     Obtener caso de uso para registro de usuarios
-    
+
     Args:
         repository: Repositorio de usuarios
-        
+
     Returns:
         Caso de uso para registro de usuarios
     """
@@ -45,28 +49,30 @@ def get_register_use_case(
 
 
 def get_login_use_case(
-    repository=Depends(get_supabase_user_repository),
-):
+    repository: SupabaseUserRepositoryImpl = Depends(get_supabase_user_repository),
+) -> LoginUserSupabaseUseCase:
     """
     Obtener caso de uso para login de usuarios
-    
+
     Args:
         repository: Repositorio de usuarios
-        
+
     Returns:
         Caso de uso para login de usuarios
     """
     return LoginUserSupabaseUseCase(repository)
 
 
-@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED
+)
 async def register(
     request: RegisterRequest,
     use_case: RegisterUserSupabaseUseCase = Depends(get_register_use_case),
-):
+) -> AuthResponse:
     """
     Registrar un nuevo usuario
-    
+
     - **email**: Email del usuario
     - **password**: Contraseña del usuario (mínimo 8 caracteres)
     - **full_name**: Nombre completo del usuario (opcional)
@@ -79,7 +85,7 @@ async def register(
             full_name=request.full_name,
             role=UserRole.USER,
         )
-        
+
         try:
             # Autenticar usuario
             login_use_case = LoginUserSupabaseUseCase(get_supabase_user_repository())
@@ -87,7 +93,7 @@ async def register(
                 email=request.email,
                 password=request.password,
             )
-            
+
             # Crear respuesta
             return AuthResponse(
                 user=UserResponse(
@@ -104,14 +110,20 @@ async def register(
             # Si falla la autenticación inmediata, devolvemos solo la información del usuario
             # Esto puede ocurrir si Supabase tiene un retraso en la propagación del usuario
             import logging
-            logger = logging.getLogger("app.presentation.api.v1.endpoints.supabase_auth")
-            logger.warning(f"Usuario creado pero no se pudo autenticar inmediatamente: {user.email}")
-            
+
+            logger = logging.getLogger(
+                "app.presentation.api.v1.endpoints.supabase_auth"
+            )
+            logger.warning(
+                f"Usuario creado pero no se pudo autenticar inmediatamente: {user.email}"
+            )
+
             # Generar tokens manualmente
             from app.core.security import create_access_token, create_refresh_token
+
             access_token = create_access_token({"sub": str(user.id)})
             refresh_token = create_refresh_token({"sub": str(user.id)})
-            
+
             return AuthResponse(
                 user=UserResponse(
                     id=user.id,
@@ -127,25 +139,26 @@ async def register(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
-        )
+        ) from e
     except Exception as e:
         import logging
+
         logger = logging.getLogger("app.presentation.api.v1.endpoints.supabase_auth")
         logger.error(f"Error en registro: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
 
 
 @router.post("/login", response_model=AuthResponse)
 async def login(
     request: RegisterRequest,
     use_case: LoginUserSupabaseUseCase = Depends(get_login_use_case),
-):
+) -> AuthResponse:
     """
     Autenticar un usuario
-    
+
     - **email**: Email del usuario
     - **password**: Contraseña del usuario
     """
@@ -155,7 +168,7 @@ async def login(
             email=request.email,
             password=request.password,
         )
-        
+
         # Crear respuesta
         return AuthResponse(
             user=UserResponse(
@@ -172,24 +185,62 @@ async def login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
-        )
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(request: RefreshTokenRequest):
+async def refresh_token(request: RefreshTokenRequest) -> TokenResponse:
     """
     Refrescar token de acceso
-    
+
     - **refresh_token**: Token de refresco
     """
-    # Esta funcionalidad se implementaría utilizando el token de refresco de Supabase
-    # Por ahora, devolvemos un error
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Funcionalidad no implementada",
-    )
+    try:
+        # Decodificar refresh token
+        from app.core.security import (
+            create_access_token,
+            create_refresh_token,
+            decode_token,
+        )
+
+        payload = decode_token(request.refresh_token, expected_type="refresh")
+        user_id = payload.get("sub")
+
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token inválido",
+            )
+
+        # Generar nuevos tokens
+        new_access_token = create_access_token(user_id)
+        new_refresh_token = create_refresh_token(user_id)
+
+        return TokenResponse(
+            access_token=new_access_token,
+            refresh_token=new_refresh_token,
+            token_type="bearer",
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token inválido o expirado",
+        ) from e
+
+
+@router.post("/logout")
+async def logout() -> dict[str, str]:
+    """
+    Cerrar sesión
+
+    En una implementación con JWT stateless, el logout es manejado por el cliente
+    eliminando los tokens. Este endpoint existe para compatibilidad.
+    """
+    return {"message": "Sesión cerrada exitosamente"}

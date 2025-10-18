@@ -1,6 +1,7 @@
 """
 Middleware para headers de seguridad
 """
+
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response

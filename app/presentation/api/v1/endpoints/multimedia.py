@@ -1,7 +1,7 @@
 """
 Endpoints de la API para gestionar contenido multimedia.
 """
-from typing import Optional
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -25,12 +25,12 @@ router = APIRouter()
     status_code=status.HTTP_201_CREATED,
     summary="Crear nuevo contenido multimedia",
     description="Registra un nuevo contenido multimedia (imagen o video) en el sistema.",
-    tags=["Multimedia"]
+    tags=["Multimedia"],
 )
 async def create_multimedia(
     multimedia_data: MultimediaCreate,
-    use_case: CreateMultimediaUseCase = Depends(get_create_multimedia_use_case)
-):
+    use_case: CreateMultimediaUseCase = Depends(get_create_multimedia_use_case),
+) -> MultimediaRead:
     """
     Endpoint para crear nuevo contenido multimedia.
 
@@ -39,20 +39,22 @@ async def create_multimedia(
     """
     try:
         # Convertir el esquema Pydantic a dict sin alias (nombres de columnas reales)
-        multimedia_dict = multimedia_data.model_dump(by_alias=False, mode='json', exclude_none=True)
+        multimedia_dict = multimedia_data.model_dump(
+            by_alias=False, mode="json", exclude_none=True
+        )
 
         created_multimedia = await use_case.execute(multimedia_dict)
-        return created_multimedia
+        return MultimediaRead.model_validate(created_multimedia)
     except SupabaseError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"No se pudo crear el contenido multimedia: {e}"
-        )
+            detail=f"No se pudo crear el contenido multimedia: {e}",
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ocurrió un error inesperado: {e}"
-        )
+            detail=f"Ocurrió un error inesperado: {e}",
+        ) from e
 
 
 @router.get(
@@ -60,16 +62,20 @@ async def create_multimedia(
     response_model=MultimediaListResponse,
     summary="Listar contenido multimedia",
     description="Obtiene una lista de contenidos multimedia con filtros opcionales.",
-    tags=["Multimedia"]
+    tags=["Multimedia"],
 )
 async def list_multimedia(
     skip: int = Query(0, ge=0, description="Número de elementos a omitir"),
-    limit: int = Query(100, ge=1, le=500, description="Número máximo de elementos a devolver"),
-    category: Optional[str] = Query(None, description="Filtrar por categoría"),
-    type: Optional[str] = Query(None, description="Filtrar por tipo (image/video)"),
-    is_published: Optional[bool] = Query(None, alias="isPublished", description="Filtrar por estado de publicación"),
-    featured: Optional[bool] = Query(None, description="Filtrar por destacados"),
-):
+    limit: int = Query(
+        100, ge=1, le=500, description="Número máximo de elementos a devolver"
+    ),
+    category: str | None = Query(None, description="Filtrar por categoría"),
+    type: str | None = Query(None, description="Filtrar por tipo (image/video)"),
+    is_published: bool | None = Query(
+        None, alias="isPublished", description="Filtrar por estado de publicación"
+    ),
+    featured: bool | None = Query(None, description="Filtrar por destacados"),
+) -> MultimediaListResponse:
     """
     Endpoint para listar contenido multimedia con filtros opcionales.
     """
@@ -85,25 +91,22 @@ async def list_multimedia(
             category=category,
             type=type,
             is_published=is_published,
-            featured=featured
+            featured=featured,
         )
 
         return MultimediaListResponse(
-            items=items,
-            total=len(items),
-            skip=skip,
-            limit=limit
+            items=items, total=len(items), skip=skip, limit=limit
         )
     except SupabaseError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener contenido multimedia: {e}"
-        )
+            detail=f"Error al obtener contenido multimedia: {e}",
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ocurrió un error inesperado: {e}"
-        )
+            detail=f"Ocurrió un error inesperado: {e}",
+        ) from e
 
 
 @router.get(
@@ -111,9 +114,9 @@ async def list_multimedia(
     response_model=MultimediaRead,
     summary="Obtener contenido multimedia por ID",
     description="Obtiene un contenido multimedia específico por su ID.",
-    tags=["Multimedia"]
+    tags=["Multimedia"],
 )
-async def get_multimedia(multimedia_id: UUID):
+async def get_multimedia(multimedia_id: UUID) -> MultimediaRead:
     """
     Endpoint para obtener un contenido multimedia por su ID.
     """
@@ -128,22 +131,22 @@ async def get_multimedia(multimedia_id: UUID):
         if not multimedia:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Contenido multimedia con ID {multimedia_id} no encontrado"
+                detail=f"Contenido multimedia con ID {multimedia_id} no encontrado",
             )
 
-        return multimedia
+        return MultimediaRead.model_validate(multimedia)
     except HTTPException:
         raise
     except SupabaseError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener contenido multimedia: {e}"
-        )
+            detail=f"Error al obtener contenido multimedia: {e}",
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ocurrió un error inesperado: {e}"
-        )
+            detail=f"Ocurrió un error inesperado: {e}",
+        ) from e
 
 
 @router.patch(
@@ -151,12 +154,11 @@ async def get_multimedia(multimedia_id: UUID):
     response_model=MultimediaRead,
     summary="Actualizar contenido multimedia",
     description="Actualiza un contenido multimedia existente.",
-    tags=["Multimedia"]
+    tags=["Multimedia"],
 )
 async def update_multimedia(
-    multimedia_id: UUID,
-    multimedia_data: MultimediaUpdate
-):
+    multimedia_id: UUID, multimedia_data: MultimediaUpdate
+) -> MultimediaRead:
     """
     Endpoint para actualizar un contenido multimedia.
     """
@@ -168,32 +170,31 @@ async def update_multimedia(
         repository = MultimediaRepositoryImpl()
 
         # Convertir a dict excluyendo valores None
-        update_dict = multimedia_data.model_dump(by_alias=False, mode='json', exclude_none=True)
+        update_dict = multimedia_data.model_dump(
+            by_alias=False, mode="json", exclude_none=True
+        )
 
         if not update_dict:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No se proporcionaron datos para actualizar"
+                detail="No se proporcionaron datos para actualizar",
             )
 
         updated_multimedia = await repository.update(multimedia_id, update_dict)
-        return updated_multimedia
+        return MultimediaRead.model_validate(updated_multimedia)
 
     except EntityNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except SupabaseError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al actualizar contenido multimedia: {e}"
-        )
+            detail=f"Error al actualizar contenido multimedia: {e}",
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ocurrió un error inesperado: {e}"
-        )
+            detail=f"Ocurrió un error inesperado: {e}",
+        ) from e
 
 
 @router.delete(
@@ -201,9 +202,9 @@ async def update_multimedia(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Eliminar contenido multimedia",
     description="Elimina un contenido multimedia del sistema.",
-    tags=["Multimedia"]
+    tags=["Multimedia"],
 )
-async def delete_multimedia(multimedia_id: UUID):
+async def delete_multimedia(multimedia_id: UUID) -> None:
     """
     Endpoint para eliminar un contenido multimedia.
     """
@@ -216,17 +217,14 @@ async def delete_multimedia(multimedia_id: UUID):
         await repository.delete(multimedia_id)
 
     except EntityNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except SupabaseError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al eliminar contenido multimedia: {e}"
-        )
+            detail=f"Error al eliminar contenido multimedia: {e}",
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ocurrió un error inesperado: {e}"
-        )
+            detail=f"Ocurrió un error inesperado: {e}",
+        ) from e

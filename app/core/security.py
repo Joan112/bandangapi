@@ -1,6 +1,7 @@
 """
 Utilidades de seguridad: JWT, password hashing, tokens
 """
+
 from datetime import datetime, timedelta
 from typing import Any, Literal
 
@@ -76,7 +77,9 @@ def create_token(
         "iat": datetime.utcnow(),
     }
 
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
 
     return encoded_jwt
 
@@ -108,7 +111,9 @@ def decode_token(
         HTTPException: Si el token es inválido o expirado
     """
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
 
         # Validar tipo de token si se especifica
         if expected_type and payload.get("type") != expected_type:

@@ -1,6 +1,7 @@
 """
 Tests de integración para endpoints de autenticación
 """
+
 import pytest
 from httpx import AsyncClient
 
@@ -12,10 +13,14 @@ async def test_register_user(client: AsyncClient, sample_user_data):
 
     assert response.status_code == 201
     data = response.json()
-    assert data["email"] == sample_user_data["email"]
-    assert data["full_name"] == sample_user_data["full_name"]
-    assert "id" in data
-    assert "hashed_password" not in data
+    # AuthResponse tiene estructura: {user: {...}, access_token, refresh_token, token_type}
+    assert "user" in data
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert data["token_type"] == "bearer"
+    assert data["user"]["email"] == sample_user_data["email"]
+    assert data["user"]["full_name"] == sample_user_data["full_name"]
+    assert "id" in data["user"]
 
 
 @pytest.mark.asyncio
