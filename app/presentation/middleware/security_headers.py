@@ -49,19 +49,45 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "http://", ""
         )
 
-        csp_directives = [
-            "default-src 'self'",
-            f"connect-src 'self' https://{supabase_domain} https://*.supabase.co",
-            "script-src 'self' 'unsafe-inline'",
-            "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: https:",
-            "font-src 'self' data:",
-            "object-src 'none'",
-            "base-uri 'self'",
-            "form-action 'self'",
-            "frame-ancestors 'none'",
-            "upgrade-insecure-requests",
+        # Detectar si es ruta de documentación (Swagger/ReDoc)
+        is_docs_route = request.url.path in [
+            "/api/docs",
+            "/api/redoc",
+            "/api/openapi.json",
         ]
+
+        # CSP más permisivo para documentación (permite CDN de Swagger UI)
+        # SECURITY NOTE: Solo rutas de docs permiten cdn.jsdelivr.net
+        # Las rutas de producción mantienen CSP estricto
+        if is_docs_route:
+            csp_directives = [
+                "default-src 'self'",
+                f"connect-src 'self' https://{supabase_domain} https://*.supabase.co",
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+                "img-src 'self' data: https:",
+                "font-src 'self' data: https://cdn.jsdelivr.net",
+                "object-src 'none'",
+                "base-uri 'self'",
+                "form-action 'self'",
+                "frame-ancestors 'none'",
+                "upgrade-insecure-requests",
+            ]
+        else:
+            # CSP estricto para rutas de producción
+            csp_directives = [
+                "default-src 'self'",
+                f"connect-src 'self' https://{supabase_domain} https://*.supabase.co",
+                "script-src 'self' 'unsafe-inline'",
+                "style-src 'self' 'unsafe-inline'",
+                "img-src 'self' data: https:",
+                "font-src 'self' data:",
+                "object-src 'none'",
+                "base-uri 'self'",
+                "form-action 'self'",
+                "frame-ancestors 'none'",
+                "upgrade-insecure-requests",
+            ]
 
         response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
 
