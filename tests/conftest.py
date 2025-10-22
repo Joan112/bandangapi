@@ -5,6 +5,7 @@ Fixtures para pytest
 import asyncio
 import os
 from collections.abc import AsyncGenerator
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -521,3 +522,150 @@ def sample_multimedia_data() -> dict[str, str]:
         "thumbnailUrl": "https://example.com/thumbnail.jpg",
         "description": "Video de muestra",
     }
+
+
+# ============================================================================
+# Fixtures para Tests de Eventos
+# ============================================================================
+
+
+@pytest.fixture
+def mock_admin_dependency(client: AsyncClient):
+    """
+    Mock de la dependencia get_current_user para simular usuario ADMIN.
+
+    Usa dependency_overrides de FastAPI para inyectar un usuario ADMIN.
+    """
+    from app.core.dependencies import get_current_user
+    from app.domain.entities.supabase_user import SupabaseUser, UserRole
+    from app.main import app
+    from uuid import uuid4
+
+    mock_admin_user = SupabaseUser(
+        id=uuid4(),
+        email="admin@test.com",
+        full_name="Admin User",
+        role=UserRole.ADMIN,  # Usar el enum UserRole
+        is_active=True,
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+    )
+
+    async def _mock_get_current_user():
+        return mock_admin_user
+
+    # Override la dependencia en la app de FastAPI
+    app.dependency_overrides[get_current_user] = _mock_get_current_user
+
+    yield mock_admin_user
+
+    # Limpiar después del test
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def admin_user_token(client: AsyncClient) -> str:
+    """
+    Fixture que retorna token de usuario ADMIN.
+
+    NOTA: Este token debe usarse junto con mock_admin_dependency
+    para bypasear la verificación de rol en los endpoints.
+    """
+    admin_data = {
+        "email": "admin@test.com",
+        "password": "AdminPassword123!",
+        "full_name": "Admin User",
+    }
+
+    # Registrar usuario
+    await client.post("/api/v1/auth/register", json=admin_data)
+
+    # Login para obtener token
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": admin_data["email"], "password": admin_data["password"]},
+    )
+
+    tokens = login_response.json()
+    return tokens["access_token"]
+
+
+@pytest.fixture
+def mock_superadmin_dependency(client: AsyncClient):
+    """
+    Mock de la dependencia get_current_user para simular usuario SUPERADMIN.
+
+    Usa dependency_overrides de FastAPI para inyectar un usuario SUPERADMIN.
+    """
+    from app.core.dependencies import get_current_user
+    from app.domain.entities.supabase_user import SupabaseUser, UserRole
+    from app.main import app
+    from uuid import uuid4
+
+    mock_superadmin_user = SupabaseUser(
+        id=uuid4(),
+        email="superadmin@test.com",
+        full_name="Super Admin User",
+        role=UserRole.SUPERADMIN,  # Usar el enum UserRole
+        is_active=True,
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+    )
+
+    async def _mock_get_current_user():
+        return mock_superadmin_user
+
+    # Override la dependencia en la app de FastAPI
+    app.dependency_overrides[get_current_user] = _mock_get_current_user
+
+    yield mock_superadmin_user
+
+    # Limpiar después del test
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def superadmin_user_token(client: AsyncClient) -> str:
+    """Fixture que retorna token de usuario SUPERADMIN."""
+    superadmin_data = {
+        "email": "superadmin@test.com",
+        "password": "SuperAdminPassword123!",
+        "full_name": "Super Admin User",
+    }
+
+    # Registrar usuario
+    await client.post("/api/v1/auth/register", json=superadmin_data)
+
+    # Login
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": superadmin_data["email"],
+            "password": superadmin_data["password"],
+        },
+    )
+
+    tokens = login_response.json()
+    return tokens["access_token"]
+
+
+@pytest.fixture
+async def regular_user_token(client: AsyncClient) -> str:
+    """Fixture que retorna token de usuario regular (USER)."""
+    user_data = {
+        "email": "user@test.com",
+        "password": "UserPassword123!",
+        "full_name": "Regular User",
+    }
+
+    # Registrar usuario
+    await client.post("/api/v1/auth/register", json=user_data)
+
+    # Login
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": user_data["email"], "password": user_data["password"]},
+    )
+
+    tokens = login_response.json()
+    return tokens["access_token"]

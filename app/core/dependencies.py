@@ -10,6 +10,7 @@ from fastapi.security import OAuth2PasswordBearer
 
 from app.domain.entities.supabase_user import SupabaseUser, UserRole
 from app.domain.use_cases.events.create_event import CreateEventUseCase
+from app.domain.use_cases.events.list_events import ListEventsUseCase
 from app.domain.use_cases.multimedia.create_multimedia import CreateMultimediaUseCase
 from app.infrastructure.database.repositories.event_repository_impl import (
     EventRepositoryImpl,
@@ -213,6 +214,20 @@ def get_create_event_use_case() -> CreateEventUseCase:
     """
     event_repository = EventRepositoryImpl()
     return CreateEventUseCase(event_repository=event_repository)
+
+
+def get_list_events_use_case() -> ListEventsUseCase:
+    """
+    Crea y devuelve una instancia del caso de uso para listar eventos.
+
+    Esta función actúa como un constructor para la inyección de dependencias de FastAPI.
+    Se encarga de instanciar el repositorio y luego el caso de uso.
+
+    Returns:
+        Una instancia de ListEventsUseCase.
+    """
+    event_repository = EventRepositoryImpl()
+    return ListEventsUseCase(event_repository=event_repository)
 
 
 def get_create_multimedia_use_case() -> CreateMultimediaUseCase:
