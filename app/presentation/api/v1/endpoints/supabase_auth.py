@@ -93,7 +93,11 @@ async def register(
         # Intentar obtener el rol de la solicitud (solo para tests/dev)
         # En producción, esto siempre será UserRole.USER
         role = UserRole.USER
-        if settings.ENVIRONMENT != "production" and hasattr(register_data, 'role') and register_data.role:
+        if (
+            settings.ENVIRONMENT != "production"
+            and hasattr(register_data, "role")
+            and register_data.role
+        ):
             role = register_data.role
 
         # Registrar usuario

@@ -133,7 +133,11 @@ def require_role(
         }
 
         # Convertir enum a string para comparación (usar .name para obtener "USER", "ADMIN", etc.)
-        user_role_str = current_user.role.name if hasattr(current_user.role, 'name') else str(current_user.role).upper()
+        user_role_str = (
+            current_user.role.name
+            if hasattr(current_user.role, "name")
+            else str(current_user.role).upper()
+        )
         user_role_level = role_hierarchy.get(user_role_str, 0)
         required_role_level = role_hierarchy.get(required_role, 999)
 

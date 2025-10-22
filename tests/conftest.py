@@ -96,8 +96,6 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
 
         email = credentials.get("email")
         password = credentials.get("password")
-        options = credentials.get("options", {})
-        data = options.get("data", {})
 
         # Verificar si el email ya existe (simular error de Supabase)
         if email in created_users_by_email:
@@ -117,7 +115,9 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
         }
         mock_user.created_at = "2024-01-01T00:00:00Z"
         mock_user.updated_at = "2024-01-01T00:00:00Z"
-        mock_user.email_confirmed_at = "2024-01-01T00:00:00Z"  # Email confirmado para tests
+        mock_user.email_confirmed_at = (
+            "2024-01-01T00:00:00Z"  # Email confirmado para tests
+        )
         mock_user.last_sign_in_at = "2024-01-01T00:00:00Z"
         mock_user.phone = None
         mock_user.app_metadata = {}
@@ -128,8 +128,12 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
             "user": mock_user,
             "email": email,
             "password": password,  # Guardar para validación en login
-            "full_name": credentials.get("options", {}).get("data", {}).get("full_name", ""),
-            "role": credentials.get("options", {}).get("data", {}).get("role", "user"),  # Rol personalizado (solo para tests)
+            "full_name": credentials.get("options", {})
+            .get("data", {})
+            .get("full_name", ""),
+            "role": credentials.get("options", {})
+            .get("data", {})
+            .get("role", "user"),  # Rol personalizado (solo para tests)
         }
         created_users_by_email[email] = user_data
         created_users_by_id[user_id] = user_data
@@ -151,6 +155,7 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
     # Mock de auth.sign_in_with_password
     async def mock_sign_in(credentials):
         from gotrue.errors import AuthApiError
+
         from app.core.security import create_access_token, create_refresh_token
 
         email = credentials.get("email")
@@ -175,7 +180,7 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
             "user_id": mock_user.id,
             "email": email,
             "access_token": access_token,
-            "refresh_token": refresh_token
+            "refresh_token": refresh_token,
         }
         active_sessions[access_token] = session_data
         refresh_tokens[refresh_token] = session_data
@@ -197,6 +202,7 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
     # Mock de auth.refresh_session
     async def mock_refresh_session(refresh_token_str):
         from gotrue.errors import AuthApiError
+
         from app.core.security import create_access_token, create_refresh_token
 
         # Buscar sesión por refresh_token
@@ -229,7 +235,7 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
             "user_id": user_id,
             "email": email,
             "access_token": new_access_token,
-            "refresh_token": new_refresh_token
+            "refresh_token": new_refresh_token,
         }
         active_sessions[new_access_token] = new_session_data
         refresh_tokens[new_refresh_token] = new_session_data
@@ -376,15 +382,23 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
                     if profile_id in created_users_by_id:
                         user_role = created_users_by_id[profile_id].get("role", "user")
                     elif profile_email in created_users_by_email:
-                        user_role = created_users_by_email[profile_email].get("role", "user")
+                        user_role = created_users_by_email[profile_email].get(
+                            "role", "user"
+                        )
 
                     # Agregar campos por defecto si no están presentes
                     complete_profile = {
                         **self._data,
-                        "role": self._data.get("role", user_role),  # Usar rol del usuario
+                        "role": self._data.get(
+                            "role", user_role
+                        ),  # Usar rol del usuario
                         "is_active": self._data.get("is_active", True),
-                        "created_at": self._data.get("created_at", "2024-01-01T00:00:00Z"),
-                        "updated_at": self._data.get("updated_at", "2024-01-01T00:00:00Z"),
+                        "created_at": self._data.get(
+                            "created_at", "2024-01-01T00:00:00Z"
+                        ),
+                        "updated_at": self._data.get(
+                            "updated_at", "2024-01-01T00:00:00Z"
+                        ),
                     }
                     profiles_storage[profile_id] = complete_profile
 
@@ -404,11 +418,18 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
                         mock_response.data = [profile] if profile else []
                     elif "email" in self._filters:
                         # Buscar por email - verificar tanto en profiles_storage como en created_users
-                        matching = [p for p in profiles_storage.values() if p.get("email") == self._filters["email"]]
+                        matching = [
+                            p
+                            for p in profiles_storage.values()
+                            if p.get("email") == self._filters["email"]
+                        ]
 
                         # Si no hay match en profiles_storage, verificar en created_users_by_email
                         # (para detectar usuarios creados por sign_up)
-                        if not matching and self._filters["email"] in created_users_by_email:
+                        if (
+                            not matching
+                            and self._filters["email"] in created_users_by_email
+                        ):
                             # Crear perfil "virtual" del usuario ya registrado para simular
                             # que el perfil existe (aunque todavía no se insertó manualmente)
                             user_data = created_users_by_email[self._filters["email"]]
