@@ -272,6 +272,9 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
             if "user already registered" in str(e.message).lower():
                 raise DuplicateEntityError("Usuario", "email", email) from e
             raise ValueError(f"Error de API de Supabase al crear usuario: {e}") from e
+        except DuplicateEntityError:
+            # Re-lanzar DuplicateEntityError sin modificar para que el endpoint retorne 409 Conflict
+            raise
         except Exception as e:
             raise ValueError(f"Error inesperado al crear usuario: {e}") from e
 
