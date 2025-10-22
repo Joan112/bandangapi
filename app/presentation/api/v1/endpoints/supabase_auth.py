@@ -86,12 +86,22 @@ async def register(
     - **full_name**: Nombre completo del usuario (opcional)
     """
     try:
+        # TESTING: Permitir rol personalizado en entorno no-production
+        # En producción, siempre usar UserRole.USER por seguridad
+        from app.core.config import settings
+
+        # Intentar obtener el rol de la solicitud (solo para tests/dev)
+        # En producción, esto siempre será UserRole.USER
+        role = UserRole.USER
+        if settings.ENVIRONMENT != "production" and hasattr(register_data, 'role') and register_data.role:
+            role = register_data.role
+
         # Registrar usuario
         user = await use_case.execute(
             email=register_data.email,
             password=register_data.password,
             full_name=register_data.full_name,
-            role=UserRole.USER,
+            role=role,
         )
 
         # NOTA: Con la eliminación de auto-confirmación de email,

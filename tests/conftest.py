@@ -85,6 +85,10 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
     # Storage para usuarios creados (key: email, value: user_data)
     created_users_by_email = {}
     created_users_by_id = {}
+    # Storage para sesiones activas (key: access_token, value: session_data)
+    active_sessions = {}
+    # Storage para refresh tokens (key: refresh_token, value: session_data)
+    refresh_tokens = {}
 
     # Mock de auth.sign_up
     async def mock_sign_up(credentials):
@@ -92,6 +96,8 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
 
         email = credentials.get("email")
         password = credentials.get("password")
+        options = credentials.get("options", {})
+        data = options.get("data", {})
 
         # Verificar si el email ya existe (simular error de Supabase)
         if email in created_users_by_email:
@@ -111,8 +117,8 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
         }
         mock_user.created_at = "2024-01-01T00:00:00Z"
         mock_user.updated_at = "2024-01-01T00:00:00Z"
-        mock_user.email_confirmed_at = None
-        mock_user.last_sign_in_at = None
+        mock_user.email_confirmed_at = "2024-01-01T00:00:00Z"  # Email confirmado para tests
+        mock_user.last_sign_in_at = "2024-01-01T00:00:00Z"
         mock_user.phone = None
         mock_user.app_metadata = {}
         mock_user.aud = "authenticated"
@@ -123,6 +129,7 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
             "email": email,
             "password": password,  # Guardar para validación en login
             "full_name": credentials.get("options", {}).get("data", {}).get("full_name", ""),
+            "role": credentials.get("options", {}).get("data", {}).get("role", "user"),  # Rol personalizado (solo para tests)
         }
         created_users_by_email[email] = user_data
         created_users_by_id[user_id] = user_data
@@ -144,6 +151,7 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
     # Mock de auth.sign_in_with_password
     async def mock_sign_in(credentials):
         from gotrue.errors import AuthApiError
+        from app.core.security import create_access_token, create_refresh_token
 
         email = credentials.get("email")
         password = credentials.get("password")
@@ -158,10 +166,24 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
         # Usuario y password válidos, devolver sesión
         mock_user = user_data["user"]
 
+        # Generar tokens reales usando las funciones de security.py
+        access_token = create_access_token(subject=str(mock_user.id))
+        refresh_token = create_refresh_token(subject=str(mock_user.id))
+
+        # Guardar tokens en storage
+        session_data = {
+            "user_id": mock_user.id,
+            "email": email,
+            "access_token": access_token,
+            "refresh_token": refresh_token
+        }
+        active_sessions[access_token] = session_data
+        refresh_tokens[refresh_token] = session_data
+
         # Create mock session
         mock_session = MagicMock()
-        mock_session.access_token = f"mock_access_token_{mock_user.id}"
-        mock_session.refresh_token = f"mock_refresh_token_{mock_user.id}"
+        mock_session.access_token = access_token
+        mock_session.refresh_token = refresh_token
         mock_session.token_type = "bearer"
         mock_session.user = mock_user
 
@@ -170,6 +192,107 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
         mock_response.user = mock_user
         mock_response.session = mock_session
 
+        return mock_response
+
+    # Mock de auth.refresh_session
+    async def mock_refresh_session(refresh_token_str):
+        from gotrue.errors import AuthApiError
+        from app.core.security import create_access_token, create_refresh_token
+
+        # Buscar sesión por refresh_token
+        session_data = refresh_tokens.get(refresh_token_str)
+
+        if not session_data:
+            raise AuthApiError("Invalid refresh token", 400)
+
+        user_id = session_data["user_id"]
+        email = session_data["email"]
+
+        # Buscar usuario
+        user_data = created_users_by_id.get(user_id)
+        if not user_data:
+            raise AuthApiError("User not found", 404)
+
+        # Generar nuevos tokens
+        new_access_token = create_access_token(subject=str(user_id))
+        new_refresh_token = create_refresh_token(subject=str(user_id))
+
+        # Revocar tokens antiguos
+        old_access_token = session_data["access_token"]
+        if old_access_token in active_sessions:
+            del active_sessions[old_access_token]
+        if refresh_token_str in refresh_tokens:
+            del refresh_tokens[refresh_token_str]
+
+        # Guardar nuevos tokens
+        new_session_data = {
+            "user_id": user_id,
+            "email": email,
+            "access_token": new_access_token,
+            "refresh_token": new_refresh_token
+        }
+        active_sessions[new_access_token] = new_session_data
+        refresh_tokens[new_refresh_token] = new_session_data
+
+        # Create mock response
+        mock_user = user_data["user"]
+
+        mock_session = MagicMock()
+        mock_session.access_token = new_access_token
+        mock_session.refresh_token = new_refresh_token
+        mock_session.token_type = "bearer"
+        mock_session.user = mock_user
+
+        mock_response = MagicMock()
+        mock_response.user = mock_user
+        mock_response.session = mock_session
+
+        return mock_response
+
+    # Mock de auth.sign_out
+    async def mock_sign_out():
+        # En un mock simplificado, sign_out no recibe parámetros
+        # En la implementación real, Supabase usa el token del contexto
+        # Para tests, simplemente retornamos None (éxito)
+        # La revocación real de tokens se maneja por el endpoint
+        return None
+
+    # Mock de auth.get_user
+    async def mock_get_user(token):
+        from app.core.security import decode_token
+
+        # Buscar sesión por access_token
+        session_data = active_sessions.get(token)
+
+        if not session_data:
+            # Intentar decodificar el token para obtener user_id
+            try:
+                payload = decode_token(token, expected_type="access")
+                user_id = payload.get("sub")
+
+                # Buscar usuario por ID
+                user_data = created_users_by_id.get(user_id)
+                if not user_data:
+                    return None
+
+                # Crear respuesta con el usuario
+                mock_user = user_data["user"]
+                mock_response = MagicMock()
+                mock_response.user = mock_user
+                return mock_response
+            except Exception:
+                return None
+
+        # Usuario encontrado en sesiones activas
+        user_id = session_data["user_id"]
+        user_data = created_users_by_id.get(user_id)
+
+        if not user_data:
+            return None
+
+        mock_user = user_data["user"]
+        mock_response = MagicMock()
+        mock_response.user = mock_user
         return mock_response
 
     # Mock de admin methods
@@ -193,6 +316,9 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
 
     mock_supabase.auth.sign_up = mock_sign_up
     mock_supabase.auth.sign_in_with_password = mock_sign_in
+    mock_supabase.auth.refresh_session = mock_refresh_session
+    mock_supabase.auth.sign_out = mock_sign_out
+    mock_supabase.auth.get_user = mock_get_user
 
     # Storage para perfiles
     profiles_storage = {}
@@ -245,9 +371,17 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
                     profile_id = self._data.get("id")
                     profile_email = self._data.get("email")
 
+                    # Buscar rol del usuario en storage si existe
+                    user_role = "user"
+                    if profile_id in created_users_by_id:
+                        user_role = created_users_by_id[profile_id].get("role", "user")
+                    elif profile_email in created_users_by_email:
+                        user_role = created_users_by_email[profile_email].get("role", "user")
+
                     # Agregar campos por defecto si no están presentes
                     complete_profile = {
                         **self._data,
+                        "role": self._data.get("role", user_role),  # Usar rol del usuario
                         "is_active": self._data.get("is_active", True),
                         "created_at": self._data.get("created_at", "2024-01-01T00:00:00Z"),
                         "updated_at": self._data.get("updated_at", "2024-01-01T00:00:00Z"),
@@ -288,6 +422,21 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
                     else:
                         mock_response.data = list(profiles_storage.values())
                     mock_response.count = len(mock_response.data)
+                elif self._operation == "update":
+                    # Actualizar perfil
+                    if "id" in self._filters:
+                        profile_id = self._filters["id"]
+                        if profile_id in profiles_storage:
+                            # Actualizar campos del perfil
+                            profiles_storage[profile_id].update(self._data)
+                            mock_response.data = [profiles_storage[profile_id]]
+                            mock_response.count = 1
+                        else:
+                            mock_response.data = []
+                            mock_response.count = 0
+                    else:
+                        mock_response.data = []
+                        mock_response.count = 0
                 else:
                     mock_response.data = []
                     mock_response.count = None

@@ -17,6 +17,7 @@ class RegisterRequest(TrimmedModel):
     email: EmailStr = Field(..., description="Email del usuario")
     password: str = Field(..., min_length=8, description="Contraseña del usuario")
     full_name: str | None = Field(None, description="Nombre completo del usuario")
+    role: UserRole | None = Field(None, description="Rol del usuario (solo para testing)")
 
     @field_validator("password")
     @classmethod

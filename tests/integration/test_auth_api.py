@@ -63,10 +63,10 @@ async def test_login_invalid_credentials(client: AsyncClient, sample_user_data):
     # Registrar usuario
     await client.post("/api/v1/auth/register", json=sample_user_data)
 
-    # Login con password incorrecto
+    # Login con password incorrecto (pero con formato válido)
     login_data = {
         "email": sample_user_data["email"],
-        "password": "WrongPassword123",
+        "password": "WrongPassword123!",
     }
     response = await client.post("/api/v1/auth/login", json=login_data)
 

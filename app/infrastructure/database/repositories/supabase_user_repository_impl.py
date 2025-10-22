@@ -212,7 +212,7 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
                     "id": str(user_id),
                     "email": email,
                     "full_name": full_name,
-                    "role": role.value,
+                    "role": role.value if hasattr(role, 'value') else role,
                 }
 
                 try:

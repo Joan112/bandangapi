@@ -38,7 +38,7 @@ async def test_list_users_as_admin(client: AsyncClient):
     # Crear usuario admin
     admin_data = {
         "email": "admin@example.com",
-        "password": "AdminPass123",
+        "password": "AdminPass123!",
         "full_name": "Admin User",
         "role": UserRole.ADMIN,
     }
@@ -91,7 +91,7 @@ async def test_update_user_as_admin(client: AsyncClient):
     # Crear usuario regular
     user_data = {
         "email": "user@example.com",
-        "password": "UserPass123",
+        "password": "UserPass123!",
         "full_name": "Regular User",
     }
     user_response = await client.post("/api/v1/auth/register", json=user_data)
@@ -100,7 +100,7 @@ async def test_update_user_as_admin(client: AsyncClient):
     # Crear admin
     admin_data = {
         "email": "admin@example.com",
-        "password": "AdminPass123",
+        "password": "AdminPass123!",
         "full_name": "Admin User",
         "role": UserRole.ADMIN,
     }

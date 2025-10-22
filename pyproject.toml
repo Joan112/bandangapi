@@ -37,6 +37,7 @@ black = "^24.1.0"
 ruff = "^0.1.0"
 mypy = "^1.8.0"
 pre-commit = "^3.6.0"
+gotrue = "^2.12.4"
 
 [tool.black]
 line-length = 88
