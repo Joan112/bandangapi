@@ -2,6 +2,321 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+---
+
+# ⚠️ PROTOCOLO OBLIGATORIO - LEER PRIMERO ⚠️
+
+## 🚨 ANTES DE HACER CUALQUIER TAREA DE DESARROLLO:
+
+**ESTE ES UN PROTOCOLO NO NEGOCIABLE. DEBE SEGUIRSE EN EL 100% DE LAS TAREAS.**
+
+### 📋 Flujo Obligatorio:
+
+```
+1. ✋ DETENTE
+   ↓
+2. 🔍 LEE la petición del usuario cuidadosamente
+   ↓
+3. 📝 PREGÚNTATE: ¿Hay un agente especializado para esto?
+   ↓
+4. 👀 VERIFICA la lista de agentes disponibles (abajo)
+   ↓
+5. ✅ SI HAY AGENTE → USA Task tool con el agente apropiado
+   ❌ NO HAY AGENTE → Procede directamente (solo si es 100% seguro)
+   ↓
+6. 🎯 EJECUTA la tarea
+```
+
+### ❌ NUNCA hagas esto:
+- Modificar código directamente sin verificar agentes primero
+- Asumir que no hay agente sin verificar la lista completa
+- Saltarte este protocolo "para ir más rápido" o "porque es tarea simple"
+- Trabajar en endpoints, use cases, repositories, migraciones, tests o seguridad sin verificar agentes primero
+
+### ✅ SIEMPRE haz esto:
+- **PRIMERO** consultar lista de agentes
+- **SEGUNDO** usar Task tool con el agente apropiado
+- **TERCERO** ejecutar la tarea
+- Seguir el flujo: `Verificar → Agente → Ejecutar`
+
+---
+
+## 🤖 Agentes Especializados Disponibles
+
+Este proyecto tiene agentes especializados. **DEBES VERIFICAR ESTA LISTA ANTES DE CUALQUIER TAREA:**
+
+### 1️⃣ **agent-python-full** (Agente Principal - DEFAULT)
+
+**Cuándo usarlo:**
+- Cualquier tarea de desarrollo general en BandangAPI
+- Análisis de arquitectura Clean Architecture
+- Refactorizaciones complejas de código
+- Implementación de nuevas características (features) completas
+- Modificaciones a flujos existentes
+- Trabajo con Domain, Infrastructure, Presentation layers
+- Configuración de FastAPI routers y dependencies
+- Implementación de patrones de arquitectura
+- Gestión de estado y async/await patterns
+- **DEFAULT**: Si no estás seguro qué agente usar, usa este
+
+**Expertise:**
+- Clean Architecture (Domain, Infrastructure, Presentation)
+- FastAPI 0.110+ con async/await
+- Supabase integration (Auth, Database, Storage)
+- Pydantic V2 schemas y validación
+- SQLAlchemy 2.0 async
+- Dependency Injection patterns
+- Type safety (mypy, type hints)
+- Testing (pytest, pytest-asyncio)
+- Production-ready code
+
+---
+
+### 2️⃣ **bandang-code-quality** (Calidad de Código)
+
+**Cuándo usarlo:**
+- Auditorías de calidad de código
+- Formatear código con Black
+- Linting con Ruff
+- Type checking con mypy
+- Agregar/mejorar type hints
+- Escribir/mejorar docstrings
+- Refactoring siguiendo best practices
+- Code review automatizado
+- Análisis de complejidad ciclomática
+- Eliminar code smells
+
+**Expertise:**
+- Black formatting (line-length 100)
+- Ruff linting completo
+- mypy strict type checking
+- Google-style docstrings
+- PEP 8 y PEP 257 compliance
+- Refactoring patterns
+- SOLID principles
+
+---
+
+### 3️⃣ **bandang-migration-manager** (Migraciones y Database Schema)
+
+**Cuándo usarlo:**
+- Crear migraciones Alembic (autogenerate o manuales)
+- Modificar schemas de base de datos
+- Agregar/modificar RLS policies en Supabase
+- Crear triggers SQL
+- Configurar índices para optimización
+- Rollback de migraciones
+- Auditar histórico de migraciones
+- Sincronizar SQLAlchemy models con Supabase
+- Crear funciones PL/pgSQL
+
+**Expertise:**
+- Alembic migrations (autogenerate, manual)
+- PostgreSQL DDL/DML
+- Supabase RLS (Row Level Security) policies
+- Database triggers y functions
+- Índices y optimización de queries
+- Foreign keys y constraints
+- Migration rollback strategies
+
+---
+
+### 4️⃣ **bandang-security-guardian** (Seguridad y Autenticación)
+
+**Cuándo usarlo:**
+- Implementar/modificar autenticación JWT
+- Configurar RBAC (Role-Based Access Control)
+- Auditar seguridad de passwords
+- Configurar rate limiting
+- Implementar security headers
+- Configurar CORS policies
+- Validar input sanitization
+- Implementar 2FA/MFA
+- Auditorías de seguridad
+- Detectar vulnerabilidades (SQL injection, XSS, CSRF)
+
+**Expertise:**
+- JWT authentication (access + refresh tokens)
+- Bcrypt password hashing
+- RBAC con roles (USER, ADMIN, SUPERADMIN)
+- Rate limiting (SlowAPI)
+- Security headers (HSTS, CSP, X-Frame-Options)
+- CORS configuration
+- Input validation y sanitization
+- OWASP best practices
+- Supabase Auth integration
+
+---
+
+### 5️⃣ **bandang-api-generator** (Generación de Endpoints FastAPI)
+
+**Cuándo usarlo:**
+- Generar nuevos endpoints REST
+- Crear Pydantic request/response schemas
+- Implementar validaciones de entrada
+- Agregar RBAC a endpoints
+- Configurar dependency injection
+- Documentar endpoints (OpenAPI/Swagger)
+- Implementar paginación
+- Crear filtros y búsquedas
+- Versioning de API
+
+**Expertise:**
+- FastAPI routers y endpoints
+- Pydantic V2 schemas (BaseModel, validation)
+- Dependency injection (@Depends)
+- RBAC decorators (require_role)
+- OpenAPI/Swagger documentation
+- HTTP status codes
+- Error handling y custom exceptions
+- Query parameters, path parameters, request body
+- Response models y status codes
+
+---
+
+### 6️⃣ **bandang-feature-architect** (Features Completas End-to-End)
+
+**Cuándo usarlo:**
+- Crear una feature completa nueva (ej: módulo de pagos, notificaciones)
+- Implementar flujo end-to-end (Domain → Infrastructure → Presentation)
+- Diseñar arquitectura de nueva funcionalidad
+- Crear Entity + Repository + UseCase + Endpoint
+- Implementar CRUD completo
+- Coordinar múltiples capas de Clean Architecture
+- Integrar con servicios externos
+
+**Expertise:**
+- Clean Architecture completa (3 layers)
+- Domain entities y value objects
+- Repository pattern (interface + implementation)
+- Use cases (business logic)
+- Presentation layer (FastAPI routers + schemas)
+- Dependency injection cross-layer
+- Supabase integration end-to-end
+- Testing strategy para features
+
+---
+
+### 7️⃣ **bandang-test-engineer** (Testing Completo)
+
+**Cuándo usarlo:**
+- Crear tests unitarios
+- Crear tests de integración
+- Configurar fixtures de pytest
+- Implementar mocking (unittest.mock)
+- Crear test database setup
+- Implementar test coverage
+- Testing de endpoints FastAPI (TestClient)
+- Testing async con pytest-asyncio
+- Parametrized tests
+- Test debugging y troubleshooting
+
+**Expertise:**
+- pytest + pytest-asyncio
+- unittest.mock para mocking
+- Fixtures y conftest.py
+- TestClient de FastAPI
+- Test database setup/teardown
+- Coverage reports (pytest-cov)
+- Mocking de Supabase/Redis
+- Integration testing strategies
+- TDD (Test-Driven Development)
+
+---
+
+### 8️⃣ **bandang-supabase-specialist** (Integración Supabase)
+
+**Cuándo usarlo:**
+- Integrar Supabase Auth
+- Implementar operaciones de database via Supabase client
+- Configurar Supabase Storage (upload/download files)
+- Crear/modificar RLS policies
+- Implementar triggers de Supabase
+- Configurar Realtime subscriptions
+- Gestión de usuarios Supabase
+- Configurar Edge Functions
+- Migration desde SQLAlchemy a Supabase client
+
+**Expertise:**
+- Supabase Auth (sign up, sign in, refresh tokens)
+- Supabase Database client (select, insert, update, delete)
+- Supabase Storage (buckets, upload, download, public URLs)
+- RLS (Row Level Security) policies
+- Database triggers
+- Realtime subscriptions
+- Edge Functions
+- Service role vs anon key usage
+- Supabase Python SDK
+
+---
+
+## 📋 Guía Rápida de Decisión
+
+**¿Necesitas implementar/modificar código general?**
+→ `agent-python-full` (DEFAULT)
+
+**¿Auditoría de calidad, formatting, linting, type hints?**
+→ `bandang-code-quality`
+
+**¿Migraciones Alembic o schemas de base de datos?**
+→ `bandang-migration-manager`
+
+**¿Seguridad, autenticación, RBAC, CORS?**
+→ `bandang-security-guardian`
+
+**¿Crear nuevos endpoints FastAPI con schemas?**
+→ `bandang-api-generator`
+
+**¿Crear feature completa end-to-end (Domain → Infrastructure → Presentation)?**
+→ `bandang-feature-architect`
+
+**¿Testing (unit, integration, fixtures, mocking)?**
+→ `bandang-test-engineer`
+
+**¿Integración con Supabase (Auth, Database, Storage, RLS)?**
+→ `bandang-supabase-specialist`
+
+---
+
+## 🎯 Ejemplos de Uso
+
+**Ejemplo 1:**
+- **Petición:** "Agrega validación de email fuerte al registro de usuarios"
+- **Acción:** Usar `Task tool` con `bandang-api-generator`
+- **Razón:** Modificación de endpoint y schemas de validación
+
+**Ejemplo 2:**
+- **Petición:** "Crea una migración para agregar tabla de pagos con RLS policies"
+- **Acción:** Usar `Task tool` con `bandang-migration-manager`
+- **Razón:** Migraciones y configuración de RLS
+
+**Ejemplo 3:**
+- **Petición:** "Implementa feature completa de notificaciones (domain, repo, use case, endpoint)"
+- **Acción:** Usar `Task tool` con `bandang-feature-architect`
+- **Razón:** Feature end-to-end con todas las capas
+
+**Ejemplo 4:**
+- **Petición:** "Agrega tests de integración para el endpoint de login"
+- **Acción:** Usar `Task tool` con `bandang-test-engineer`
+- **Razón:** Testing de endpoints
+
+**Ejemplo 5:**
+- **Petición:** "Configura Supabase Storage para subir imágenes de eventos"
+- **Acción:** Usar `Task tool` con `bandang-supabase-specialist`
+- **Razón:** Integración con Supabase Storage
+
+**Ejemplo 6:**
+- **Petición:** "Audita la seguridad del sistema de autenticación"
+- **Acción:** Usar `Task tool` con `bandang-security-guardian`
+- **Razón:** Auditoría de seguridad
+
+**Ejemplo 7:**
+- **Petición:** "Formatea todo el código con Black y agrega type hints faltantes"
+- **Acción:** Usar `Task tool` con `bandang-code-quality`
+- **Razón:** Calidad de código
+
+---
+
 ## Project Overview
 
 BandangWeb API is a FastAPI backend built with **Clean Architecture** principles, using **Supabase** as the primary backend-as-a-service (authentication, database, storage) and PostgreSQL. The project emphasizes type safety, security, and separation of concerns.
@@ -318,7 +633,3 @@ Schemas inherit from base classes in `app/presentation/api/v1/schemas/base.py` t
 - Use `pytest-asyncio` for async tests
 - Mock external dependencies (Supabase, Redis) in unit tests
 - Use test database for integration tests
-- no agreges esta parte en el commit -  🤖 Generated with [Claude Code](https://claude.com/claude-code)                                                                                                                                               │
-│                                                                                                                                                                                                                 │
-│   Co-Authored-By: Claude <noreply@anthropic.com>"                                                                                                                                                               │
-│   Create comprehensive commit
