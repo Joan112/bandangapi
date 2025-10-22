@@ -42,7 +42,11 @@ class SupabaseClient:
         return self._client
 
     async def _ensure_admin_client(self) -> AsyncClient:
-        """Asegurar que el cliente admin está inicializado (bypasa RLS)"""
+        """
+        Asegurar que el cliente admin está inicializado
+
+        **SECURITY WARNING**: Este cliente usa SUPABASE_SERVICE_ROLE_KEY y BYPASSA RLS.
+        """
         if self._admin_client is None:
             self._admin_client = await create_async_client(
                 settings.SUPABASE_URL,
@@ -53,12 +57,29 @@ class SupabaseClient:
 
     @property
     async def client(self) -> AsyncClient:
-        """Obtener cliente nativo de Supabase"""
+        """
+        Obtener cliente nativo de Supabase (respeta RLS policies)
+
+        Este cliente usa la anon/public key y respeta todas las Row Level Security policies.
+        Úsalo para todas las operaciones normales que deben respetar permisos de usuario.
+        """
         return await self._ensure_client()
 
     @property
     async def admin_client(self) -> AsyncClient:
-        """Obtener cliente admin de Supabase (bypasa RLS)"""
+        """
+        Obtener cliente admin de Supabase (bypasa RLS)
+
+        **SECURITY WARNING**: Este cliente usa service_role_key y BYPASSA todas las RLS policies.
+        Úsalo SOLO cuando sea absolutamente necesario.
+
+        Usos legítimos:
+        - Acceder a auth.users de Supabase (no accesible vía RLS)
+        - Crear recursos en nombre de otros usuarios (fallback crítico)
+        - Operaciones administrativas que requieren bypass
+
+        SIEMPRE documenta POR QUÉ necesitas usar admin_client en un comentario.
+        """
         return await self._ensure_admin_client()
 
     async def get_by_id(

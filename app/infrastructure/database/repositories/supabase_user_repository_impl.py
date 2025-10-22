@@ -2,6 +2,7 @@
 Implementación del repositorio de usuarios con Supabase
 """
 
+import logging
 from typing import Any
 from uuid import UUID
 
@@ -11,6 +12,9 @@ from app.core.exceptions import DuplicateEntityError, EntityNotFoundError
 from app.domain.entities.supabase_user import SupabaseUser, UserRole
 from app.domain.repositories.supabase_user_repository import SupabaseUserRepository
 from app.infrastructure.external.supabase import supabase_client
+
+# Configurar logger para este módulo
+logger = logging.getLogger(__name__)
 
 
 class SupabaseUserRepositoryImpl(SupabaseUserRepository):
@@ -26,8 +30,8 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
         """
         Obtener un usuario por su ID.
 
-        Utiliza el cliente de administración para evitar problemas con RLS,
-        ya que esta es una operación interna del sistema.
+        Usa admin_client solo para auth.users (requerido para acceder a datos de autenticación).
+        Para profiles usa el cliente regular con RLS policies.
 
         Args:
             user_id: ID del usuario
@@ -36,11 +40,12 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
             Usuario encontrado o None
         """
         try:
+            client = await self._supabase_client.client
             admin_client = await self._supabase_client.admin_client
 
-            # Obtener datos del perfil usando el cliente admin
+            # Obtener datos del perfil usando el cliente regular (respeta RLS)
             response = (
-                await admin_client.table("profiles")
+                await client.table("profiles")
                 .select("*")
                 .eq("id", str(user_id))
                 .execute()
@@ -51,7 +56,10 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
 
             profile_data = response.data[0]
 
-            # Obtener datos de auth.users usando el cliente admin
+            # SECURITY: Obtener datos de auth.users usando admin_client (NECESARIO - no hay otra forma)
+            # Justificación: La tabla auth.users de Supabase NO es accesible vía RLS policies.
+            # El único método para obtener email, email_confirmed_at, etc. es mediante admin API.
+            # El cliente regular se usa para 'profiles' (respeta RLS), admin solo para 'auth.users'.
             auth_response = await admin_client.auth.admin.get_user_by_id(str(user_id))
             auth_user = auth_response.user if auth_response else None
 
@@ -72,11 +80,8 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
 
             return SupabaseUser.from_dict(user_data)
         except Exception as e:
-            # Usar logging en lugar de print para un mejor manejo de errores
-            import logging
-
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error al obtener usuario por ID {user_id}: {e}")
+            # Usar logging estructurado para auditoría y debugging
+            logger.error(f"Error al obtener usuario por ID {user_id}: {type(e).__name__} - {str(e)}")
             return None
 
     async def get_by_email(self, email: str) -> SupabaseUser | None:
@@ -101,7 +106,7 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
 
             return SupabaseUser.from_dict(response.data[0])
         except Exception as e:
-            print(f"Error al obtener usuario por email: {e}")
+            logger.error(f"Error al obtener usuario por email {email}: {type(e).__name__} - {str(e)}")
             return None
 
     async def list_users(
@@ -137,7 +142,7 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
 
             return [SupabaseUser.from_dict(user_data) for user_data in response.data]
         except Exception as e:
-            print(f"Error al listar usuarios: {e}")
+            logger.error(f"Error al listar usuarios: {type(e).__name__} - {str(e)}")
             return []
 
     async def create_user(
@@ -155,12 +160,14 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
         lo crea manualmente como medida de seguridad.
         """
         try:
+            # SECURITY: admin_client se usa SOLO para operaciones que lo requieren absolutamente
             admin_client = await self._supabase_client.admin_client
             client = await self._supabase_client.client
 
             # 1. Verificar si ya existe un perfil con ese email para evitar errores.
+            # NOTA: Usar cliente regular para verificación (respeta RLS)
             existing_profile = (
-                await admin_client.table("profiles")
+                await client.table("profiles")
                 .select("id")
                 .eq("email", email)
                 .execute()
@@ -169,6 +176,7 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
                 raise DuplicateEntityError("Usuario", "email", email)
 
             # 2. Registrar el usuario en `auth.users`.
+            # NOTA: Usar cliente regular - Supabase Auth permite registro público
             signup_response = await client.auth.sign_up(
                 {
                     "email": email,
@@ -184,25 +192,8 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
 
             user_id = UUID(signup_response.user.id)
 
-            # --- AUTO-CONFIRMAR EMAIL (con reintentos para manejar el lag de Supabase) ---
-            import asyncio
-
-            max_retries = 3
-            retry_delay = 0.5  # segundos
-
-            for attempt in range(max_retries):
-                try:
-                    await admin_client.auth.admin.update_user_by_id(
-                        str(user_id), {"email_confirm": True}
-                    )
-                    break  # Éxito, salir del bucle
-                except Exception as e:
-                    if "user not found" in str(e).lower() and attempt < max_retries - 1:
-                        await asyncio.sleep(retry_delay)
-                    else:
-                        raise e  # Relanzar si no es el error esperado o es el último intento
-
             # 3. Intentar obtener el perfil, asumiendo que el trigger funcionó.
+            # NOTA: El usuario debe confirmar su email mediante el link enviado por Supabase.
             import asyncio
 
             user = await self.get_by_id(user_id)
@@ -212,22 +203,65 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
 
             # 4. Si el perfil sigue sin existir, crearlo manualmente.
             if not user:
+                logger.warning(
+                    f"Perfil no encontrado para usuario {user_id}, creando manualmente..."
+                )
+
                 profile_data = {
                     "id": str(user_id),
                     "email": email,
                     "full_name": full_name,
                     "role": role.value,
                 }
-                insert_response = (
-                    await admin_client.table("profiles").insert(profile_data).execute()
-                )
 
-                # Si la inserción manual fue exitosa, obtener el usuario una última vez.
-                if insert_response.data:
-                    user = await self.get_by_id(user_id)
+                try:
+                    # SECURITY: Usar admin_client para insertar perfil manualmente (FALLBACK CRÍTICO)
+                    # Justificación: El perfil se crea en nombre de otro usuario (user_id != current_user)
+                    # por lo que RLS policies lo bloquearían. Esto solo ocurre si el trigger de BD falla.
+                    insert_response = (
+                        await admin_client.table("profiles")
+                        .insert(profile_data)
+                        .execute()
+                    )
+                    logger.info(
+                        f"Perfil creado manualmente. Respuesta: {insert_response.data}"
+                    )
+
+                    # Si la inserción manual fue exitosa, construir el usuario directamente
+                    if insert_response.data and len(insert_response.data) > 0:
+                        profile = insert_response.data[0]
+
+                        # SECURITY: Obtener datos de auth.users (requiere admin_client)
+                        # Justificación: Mismo que get_by_id() - auth.users no accesible vía RLS
+                        auth_response = await admin_client.auth.admin.get_user_by_id(
+                            str(user_id)
+                        )
+                        auth_user = auth_response.user if auth_response else None
+
+                        if auth_user:
+                            # Combinar datos del perfil y auth
+                            user_data = {
+                                **profile,
+                                "email": auth_user.email,
+                                "email_confirmed_at": auth_user.email_confirmed_at,
+                                "last_sign_in_at": auth_user.last_sign_in_at,
+                                "phone": auth_user.phone,
+                                "created_at": auth_user.created_at,
+                                "updated_at": auth_user.updated_at,
+                            }
+                            user = SupabaseUser.from_dict(user_data)
+                            logger.info(f"Usuario creado exitosamente: {user.email}")
+                except Exception as insert_error:
+                    logger.error(
+                        f"Error al insertar perfil manualmente: {insert_error}"
+                    )
 
             # 5. Si después de todos los intentos el perfil no existe, lanzar un error definitivo.
             if not user:
+                logger.error(
+                    f"FALLO CRÍTICO: No se pudo obtener ni crear el perfil del usuario (ID: {user_id}). "
+                    f"Verificar RLS policies en tabla 'profiles' de Supabase."
+                )
                 raise ValueError(
                     f"No se pudo obtener ni crear el perfil del usuario (ID: {user_id})."
                 )
@@ -390,8 +424,45 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
         except Exception as e:
             # El cliente de Supabase puede lanzar una excepción con detalles
             # si el email no está confirmado, por ejemplo.
-            import logging
-
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error de autenticación en Supabase: {e}")
+            logger.error(f"Error de autenticación en Supabase: {type(e).__name__} - {str(e)}")
             return None
+
+    # Métodos wrapper genéricos para compatibilidad con endpoints
+    async def list_all(
+        self, skip: int = 0, limit: int = 100, role: str | None = None
+    ) -> list[SupabaseUser]:
+        """
+        Wrapper genérico para list_users.
+
+        Args:
+            skip: Número de registros a omitir
+            limit: Número máximo de registros a devolver
+            role: Filtro opcional por rol
+
+        Returns:
+            Lista de usuarios
+        """
+        return await self.list_users(skip=skip, limit=limit, role=role)
+
+    async def update(
+        self, user_id: UUID, update_data: dict[str, Any]
+    ) -> SupabaseUser:
+        """
+        Wrapper genérico para update_user.
+
+        Args:
+            user_id: ID del usuario a actualizar
+            update_data: Diccionario con los campos a actualizar
+
+        Returns:
+            Usuario actualizado
+
+        Raises:
+            EntityNotFoundError: Si el usuario no existe
+        """
+        return await self.update_user(
+            user_id=user_id,
+            full_name=update_data.get("full_name"),
+            role=UserRole(update_data["role"]) if "role" in update_data else None,
+            is_active=update_data.get("is_active"),
+        )
