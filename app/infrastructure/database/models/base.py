@@ -7,10 +7,10 @@ from datetime import datetime
 from sqlalchemy import DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database import Base
+from app.core.database import Base  # type: ignore[attr-defined]
 
 
-class BaseModel(Base):
+class BaseModel(Base):  # type: ignore[misc]
     """
     Modelo base con campos comunes
     """

@@ -2,13 +2,13 @@
 FastAPI dependencies globales
 """
 
+from collections.abc import Awaitable, Callable
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
-from app.core.security import decode_token
-from app.domain.entities.supabase_user import UserRole
+from app.domain.entities.supabase_user import SupabaseUser, UserRole
 from app.domain.use_cases.events.create_event import CreateEventUseCase
 from app.domain.use_cases.multimedia.create_multimedia import CreateMultimediaUseCase
 from app.infrastructure.database.repositories.event_repository_impl import (
@@ -24,33 +24,55 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 async def get_current_user_id(token: Annotated[str, Depends(oauth2_scheme)]) -> str:
     """
-    Obtener ID del usuario actual desde el token JWT
+    Obtener ID del usuario actual desde el token de Supabase
 
     Args:
-        token: Token JWT
+        token: Token JWT de Supabase
 
     Returns:
         ID del usuario (UUID as string)
 
     Raises:
-        HTTPException: Si el token es inválido
+        HTTPException: Si el token es inválido o el email no está confirmado
     """
-    payload = decode_token(token, expected_type="access")
-    user_id: str | None = payload.get("sub")
+    from app.infrastructure.external.supabase import supabase_client
 
-    if user_id is None:
+    try:
+        # Validar token con Supabase Auth directamente
+        client = await supabase_client.client
+        user_response = await client.auth.get_user(token)
+
+        if not user_response or not user_response.user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido o expirado",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # Verificar que el email esté confirmado
+        user = user_response.user
+        if not user.email_confirmed_at:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email no confirmado. Por favor, verifica tu correo electrónico.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        return user.id
+
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido",
+            detail=f"Error al validar token: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    return user_id
+        ) from e
 
 
 async def get_current_user(
     user_id: Annotated[str, Depends(get_current_user_id)],
-):
+) -> SupabaseUser:
     """
     Obtener usuario actual completo desde Supabase
 
@@ -85,7 +107,9 @@ async def get_current_user(
     return user
 
 
-def require_role(required_role: str):
+def require_role(
+    required_role: str,
+) -> Callable[[SupabaseUser], Awaitable[SupabaseUser]]:
     """
     Factory para crear dependency que requiere un rol específico
 
@@ -96,7 +120,9 @@ def require_role(required_role: str):
         Dependency function
     """
 
-    async def role_dependency(current_user=Depends(get_current_user)):
+    async def role_dependency(
+        current_user: Annotated[SupabaseUser, Depends(get_current_user)]
+    ) -> SupabaseUser:
         """Verificar que el usuario tiene el rol requerido"""
 
         # Orden jerárquico de roles
@@ -120,7 +146,9 @@ def require_role(required_role: str):
     return role_dependency
 
 
-async def require_admin(current_user=Depends(get_current_user)):
+async def require_admin(
+    current_user: Annotated[SupabaseUser, Depends(get_current_user)]
+) -> SupabaseUser:
     """
     Requiere que el usuario sea administrador
 
@@ -141,7 +169,9 @@ async def require_admin(current_user=Depends(get_current_user)):
     return current_user
 
 
-async def require_superadmin(current_user=Depends(get_current_user)):
+async def require_superadmin(
+    current_user: Annotated[SupabaseUser, Depends(get_current_user)]
+) -> SupabaseUser:
     """
     Requiere que el usuario sea superadmin
 

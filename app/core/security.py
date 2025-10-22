@@ -3,21 +3,18 @@ Utilidades de seguridad: JWT, password hashing, tokens
 """
 
 from datetime import datetime, timedelta
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
+import bcrypt
 from fastapi import HTTPException, status
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
-
-# Context para hashing de passwords
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
-    Verificar password plano contra hash
+    Verificar password plano contra hash bcrypt
 
     Args:
         plain_password: Password en texto plano
@@ -26,7 +23,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True si coinciden, False si no
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    # Truncar a 72 bytes antes de verificar (límite de bcrypt)
+    password_bytes = plain_password.encode("utf-8")[:72]
+    hash_bytes = (
+        hashed_password.encode("utf-8")
+        if isinstance(hashed_password, str)
+        else hashed_password
+    )
+    return bcrypt.checkpw(password_bytes, hash_bytes)
 
 
 def get_password_hash(password: str) -> str:
@@ -37,9 +41,18 @@ def get_password_hash(password: str) -> str:
         password: Password en texto plano
 
     Returns:
-        Hash bcrypt del password
+        Hash bcrypt del password como string
+
+    Note:
+        bcrypt tiene un límite de 72 bytes. Si el password es más largo,
+        se trunca automáticamente para evitar errores.
     """
-    return pwd_context.hash(password)
+    # Truncar a 72 bytes si es necesario (límite de bcrypt)
+    password_bytes = password.encode("utf-8")[:72]
+    # Generar salt y hashear (cost factor 12)
+    salt = bcrypt.gensalt(rounds=12)
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode("utf-8")
 
 
 def create_token(
@@ -81,7 +94,7 @@ def create_token(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
 
-    return encoded_jwt
+    return cast(str, encoded_jwt)
 
 
 def create_access_token(subject: str | Any) -> str:
@@ -123,7 +136,7 @@ def decode_token(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        return payload
+        return cast(dict[str, Any], payload)
 
     except JWTError as e:
         raise HTTPException(
@@ -136,6 +149,13 @@ def decode_token(
 def validate_password_strength(password: str) -> tuple[bool, str]:
     """
     Validar fortaleza del password
+
+    Requisitos:
+    - Mínimo 8 caracteres
+    - Al menos una mayúscula
+    - Al menos una minúscula
+    - Al menos un número
+    - Al menos un carácter especial (!@#$%^&*()_+-=[]{}|;:,.<>?)
 
     Args:
         password: Password a validar
@@ -157,5 +177,13 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
 
     if not any(c.isdigit() for c in password):
         return False, "Password debe contener al menos un número"
+
+    # Validar carácter especial
+    special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+    if not any(c in special_chars for c in password):
+        return (
+            False,
+            "Password debe contener al menos un carácter especial (!@#$%^&*()_+-=[]{}|;:,.<>?)",
+        )
 
     return True, ""

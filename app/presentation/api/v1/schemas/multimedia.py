@@ -122,3 +122,23 @@ class MultimediaListResponse(TrimmedModel):
     total: int = Field(..., description="Total de elementos", ge=0)
     skip: int = Field(..., description="Elementos omitidos", ge=0)
     limit: int = Field(..., description="Límite de elementos por página", ge=1)
+
+
+class MultimediaUploadResponse(TrimmedModel):
+    """Respuesta después de upload exitoso"""
+
+    id: UUID = Field(..., description="ID único del contenido")
+    title: str = Field(..., description="Título del contenido")
+    media_type: str = Field(..., description="Tipo de media (image/video)")
+    url: str = Field(..., description="URL pública del archivo")
+    thumbnail_url: str | None = Field(
+        None, description="URL del thumbnail (solo imágenes)"
+    )
+    storage_path: str = Field(..., description="Ruta en el bucket de Storage")
+    file_size: int = Field(..., description="Tamaño del archivo en bytes")
+    mime_type: str = Field(..., description="Tipo MIME del archivo")
+    original_filename: str = Field(..., description="Nombre original del archivo")
+    uploaded_at: datetime = Field(..., description="Fecha y hora de subida")
+
+    class Config:
+        from_attributes = True

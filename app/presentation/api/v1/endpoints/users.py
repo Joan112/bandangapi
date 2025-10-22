@@ -12,7 +12,7 @@ from app.domain.entities.supabase_user import SupabaseUser
 from app.infrastructure.database.repositories.supabase_user_repository_impl import (
     SupabaseUserRepositoryImpl,
 )
-from app.presentation.api.v1.schemas.supabase_auth import UserResponse
+from app.presentation.api.v1.schemas.supabase_auth import UserResponse, UserUpdate
 
 router = APIRouter(tags=["users"])
 
@@ -74,7 +74,7 @@ async def list_users(
 @router.patch("/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: UUID,
-    update_data: dict[str, Any],
+    update_data: UserUpdate,
     current_user: SupabaseUser = Depends(require_role("ADMIN")),
     repository: SupabaseUserRepositoryImpl = Depends(get_supabase_user_repository),
 ) -> UserResponse:
@@ -82,6 +82,7 @@ async def update_user(
     Actualizar información de un usuario
 
     Requiere rol ADMIN o superior.
+    Todos los campos son opcionales (PATCH semántico).
     """
     # Obtener usuario actual
     user = await repository.get_by_id(user_id)
@@ -91,8 +92,17 @@ async def update_user(
             detail=f"Usuario con ID {user_id} no encontrado",
         )
 
+    # Convertir schema a dict excluyendo valores None
+    update_dict = update_data.model_dump(by_alias=False, exclude_none=True)
+
+    if not update_dict:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se proporcionaron datos para actualizar",
+        )
+
     # Actualizar usuario
-    updated_user = await repository.update(user_id, update_data)
+    updated_user = await repository.update(user_id, update_dict)
 
     return UserResponse(
         id=updated_user.id,

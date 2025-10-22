@@ -8,19 +8,20 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 async def test_register_user(client: AsyncClient, sample_user_data):
-    """Test de registro de usuario"""
+    """Test de registro de usuario - ahora requiere confirmación de email"""
     response = await client.post("/api/v1/auth/register", json=sample_user_data)
 
     assert response.status_code == 201
     data = response.json()
-    # AuthResponse tiene estructura: {user: {...}, access_token, refresh_token, token_type}
+    # AuthResponse tiene estructura: {user: {...}, access_token, refresh_token, token_type, message}
     assert "user" in data
-    assert "access_token" in data
-    assert "refresh_token" in data
-    assert data["token_type"] == "bearer"
+    assert "message" in data  # Mensaje indicando que debe confirmar email
     assert data["user"]["email"] == sample_user_data["email"]
     assert data["user"]["full_name"] == sample_user_data["full_name"]
     assert "id" in data["user"]
+    # Los tokens están vacíos hasta confirmar email
+    assert data["access_token"] == ""
+    assert data["refresh_token"] == ""
 
 
 @pytest.mark.asyncio
@@ -32,7 +33,8 @@ async def test_register_duplicate_email(client: AsyncClient, sample_user_data):
     # Intentar registrar con mismo email
     response = await client.post("/api/v1/auth/register", json=sample_user_data)
 
-    assert response.status_code == 400
+    # Debe retornar 409 Conflict (DuplicateEntityError)
+    assert response.status_code == 409
 
 
 @pytest.mark.asyncio

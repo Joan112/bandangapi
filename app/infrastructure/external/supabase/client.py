@@ -3,11 +3,11 @@ Cliente de Supabase para la aplicación
 """
 
 from functools import lru_cache
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from supabase._async.client import AsyncClient
 from supabase._async.client import create_client as create_async_client
-from supabase.lib.client_options import ClientOptions
+from supabase.lib.client_options import AsyncClientOptions
 
 from app.core.config import settings
 
@@ -26,7 +26,7 @@ class SupabaseClient:
         """Inicializar cliente de Supabase"""
         self._client: AsyncClient | None = None
         self._admin_client: AsyncClient | None = None
-        self._options = ClientOptions(
+        self._options = AsyncClientOptions(
             schema="public",
             headers={"X-Client-Info": f"bandangweb-api/{settings.VERSION}"},
             auto_refresh_token=True,
@@ -100,7 +100,7 @@ class SupabaseClient:
         response = await client.table(table).select(select).eq("id", id_value).execute()
 
         if response.data and len(response.data) > 0:
-            return response.data[0]
+            return cast(dict[str, Any], response.data[0])
         return None
 
     async def get_by_field(
@@ -122,7 +122,7 @@ class SupabaseClient:
         response = await client.table(table).select(select).eq(field, value).execute()
 
         if response.data and len(response.data) > 0:
-            return response.data[0]
+            return cast(dict[str, Any], response.data[0])
         return None
 
     async def list_all(
@@ -176,7 +176,7 @@ class SupabaseClient:
         response = await client.table(table).insert(data).execute()
 
         if response.data and len(response.data) > 0:
-            return response.data[0]
+            return cast(dict[str, Any], response.data[0])
 
         raise ValueError(f"Error al crear registro en {table}: {response.error}")
 
@@ -198,7 +198,7 @@ class SupabaseClient:
         response = await client.table(table).update(data).eq("id", id_value).execute()
 
         if response.data and len(response.data) > 0:
-            return response.data[0]
+            return cast(dict[str, Any], response.data[0])
 
         raise ValueError(f"Error al actualizar registro en {table}: {response.error}")
 

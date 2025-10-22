@@ -4,10 +4,11 @@ Middleware para logging de requests y responses
 
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
-from fastapi import Request, Response
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     Middleware para logging de requests y responses
     """
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         # Capturar tiempo de inicio
         start_time = time.time()
 
@@ -32,7 +35,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         )
 
         # Procesar request
-        response = await call_next(request)
+        response: Response = await call_next(request)
 
         # Calcular duración
         duration = time.time() - start_time

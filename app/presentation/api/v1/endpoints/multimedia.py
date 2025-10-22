@@ -6,8 +6,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.dependencies import get_create_multimedia_use_case
+from app.core.dependencies import get_create_multimedia_use_case, require_role
 from app.core.exceptions import EntityNotFoundError, SupabaseError
+from app.domain.entities.supabase_user import SupabaseUser
 from app.domain.use_cases.multimedia.create_multimedia import CreateMultimediaUseCase
 from app.presentation.api.v1.schemas.multimedia import (
     MultimediaCreate,
@@ -24,12 +25,13 @@ router = APIRouter()
     response_model=MultimediaRead,
     status_code=status.HTTP_201_CREATED,
     summary="Crear nuevo contenido multimedia",
-    description="Registra un nuevo contenido multimedia (imagen o video) en el sistema.",
+    description="Registra un nuevo contenido multimedia (imagen o video) en el sistema. Requiere rol ADMIN.",
     tags=["Multimedia"],
 )
 async def create_multimedia(
     multimedia_data: MultimediaCreate,
     use_case: CreateMultimediaUseCase = Depends(get_create_multimedia_use_case),
+    current_user: SupabaseUser = Depends(require_role("ADMIN")),
 ) -> MultimediaRead:
     """
     Endpoint para crear nuevo contenido multimedia.
@@ -61,7 +63,7 @@ async def create_multimedia(
     "/",
     response_model=MultimediaListResponse,
     summary="Listar contenido multimedia",
-    description="Obtiene una lista de contenidos multimedia con filtros opcionales.",
+    description="Obtiene una lista de contenidos multimedia con filtros opcionales. Requiere autenticación.",
     tags=["Multimedia"],
 )
 async def list_multimedia(
@@ -75,6 +77,7 @@ async def list_multimedia(
         None, alias="isPublished", description="Filtrar por estado de publicación"
     ),
     featured: bool | None = Query(None, description="Filtrar por destacados"),
+    current_user: SupabaseUser = Depends(require_role("USER")),
 ) -> MultimediaListResponse:
     """
     Endpoint para listar contenido multimedia con filtros opcionales.
@@ -113,10 +116,13 @@ async def list_multimedia(
     "/{multimedia_id}",
     response_model=MultimediaRead,
     summary="Obtener contenido multimedia por ID",
-    description="Obtiene un contenido multimedia específico por su ID.",
+    description="Obtiene un contenido multimedia específico por su ID. Requiere autenticación.",
     tags=["Multimedia"],
 )
-async def get_multimedia(multimedia_id: UUID) -> MultimediaRead:
+async def get_multimedia(
+    multimedia_id: UUID,
+    current_user: SupabaseUser = Depends(require_role("USER")),
+) -> MultimediaRead:
     """
     Endpoint para obtener un contenido multimedia por su ID.
     """
@@ -153,11 +159,13 @@ async def get_multimedia(multimedia_id: UUID) -> MultimediaRead:
     "/{multimedia_id}",
     response_model=MultimediaRead,
     summary="Actualizar contenido multimedia",
-    description="Actualiza un contenido multimedia existente.",
+    description="Actualiza un contenido multimedia existente. Requiere rol ADMIN.",
     tags=["Multimedia"],
 )
 async def update_multimedia(
-    multimedia_id: UUID, multimedia_data: MultimediaUpdate
+    multimedia_id: UUID,
+    multimedia_data: MultimediaUpdate,
+    current_user: SupabaseUser = Depends(require_role("ADMIN")),
 ) -> MultimediaRead:
     """
     Endpoint para actualizar un contenido multimedia.
@@ -201,10 +209,13 @@ async def update_multimedia(
     "/{multimedia_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Eliminar contenido multimedia",
-    description="Elimina un contenido multimedia del sistema.",
+    description="Elimina un contenido multimedia del sistema. Requiere rol ADMIN.",
     tags=["Multimedia"],
 )
-async def delete_multimedia(multimedia_id: UUID) -> None:
+async def delete_multimedia(
+    multimedia_id: UUID,
+    current_user: SupabaseUser = Depends(require_role("ADMIN")),
+) -> None:
     """
     Endpoint para eliminar un contenido multimedia.
     """

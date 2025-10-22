@@ -108,7 +108,7 @@ app.add_middleware(LoggingMiddleware)
 # Configurar rate limiting
 limiter = get_rate_limiter()
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # Incluir routers
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)

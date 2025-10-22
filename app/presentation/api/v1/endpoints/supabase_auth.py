@@ -2,11 +2,13 @@
 Endpoints para autenticación con Supabase
 """
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.dependencies import require_role
 from app.core.exceptions import DuplicateEntityError, InvalidCredentialsError
-from app.domain.entities.supabase_user import UserRole
+from app.domain.entities.supabase_user import SupabaseUser, UserRole
 from app.domain.use_cases.auth import (
     LoginUserSupabaseUseCase,
     RegisterUserSupabaseUseCase,
@@ -68,7 +70,9 @@ def get_login_use_case(
 @router.post(
     "/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED
 )
-@limiter.limit("5/minute")  # SECURITY: Limitar a 5 intentos/minuto para prevenir ataques de registro masivo
+@limiter.limit(
+    "5/minute"
+)  # SECURITY: Limitar a 5 intentos/minuto para prevenir ataques de registro masivo
 async def register(
     request: Request,
     register_data: RegisterRequest,
@@ -124,7 +128,9 @@ async def register(
 
 
 @router.post("/login", response_model=AuthResponse)
-@limiter.limit("5/minute")  # SECURITY: Limitar a 5 intentos/minuto para prevenir ataques de fuerza bruta
+@limiter.limit(
+    "5/minute"
+)  # SECURITY: Limitar a 5 intentos/minuto para prevenir ataques de fuerza bruta
 async def login(
     request: Request,
     login_data: RegisterRequest,
@@ -168,7 +174,9 @@ async def login(
 
 
 @router.post("/refresh", response_model=TokenResponse)
-@limiter.limit("10/minute")  # SECURITY: 10 intentos/minuto es suficiente para refresh tokens (menos crítico que login)
+@limiter.limit(
+    "10/minute"
+)  # SECURITY: 10 intentos/minuto es suficiente para refresh tokens (menos crítico que login)
 async def refresh_token(
     request: Request, refresh_data: RefreshTokenRequest
 ) -> TokenResponse:
@@ -182,9 +190,7 @@ async def refresh_token(
 
         # Refrescar sesión con Supabase
         client = await supabase_client.client
-        refresh_response = await client.auth.refresh_session(
-            refresh_data.refresh_token
-        )
+        refresh_response = await client.auth.refresh_session(refresh_data.refresh_token)
 
         if not refresh_response.session:
             raise HTTPException(
@@ -209,7 +215,8 @@ async def refresh_token(
 @router.post("/logout")
 @limiter.limit("20/minute")  # SECURITY: Logout es menos crítico, permitir 20/min
 async def logout(
-    request: Request, current_user=Depends(require_role("USER"))
+    request: Request,
+    current_user: Annotated[SupabaseUser, Depends(require_role("USER"))],
 ) -> dict[str, str]:
     """
     Cerrar sesión con revocación de token en Supabase
@@ -227,8 +234,6 @@ async def logout(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token de autorización no proporcionado",
             )
-
-        token = authorization.replace("Bearer ", "")
 
         # Revocar la sesión en Supabase (sign out)
         client = await supabase_client.client

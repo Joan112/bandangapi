@@ -5,6 +5,7 @@ Entidad de dominio: Usuario para Supabase
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from typing import Any
 from uuid import UUID
 
 
@@ -78,7 +79,7 @@ class SupabaseUser:
         return False
 
     @classmethod
-    def from_dict(cls, data: dict) -> "SupabaseUser":
+    def from_dict(cls, data: dict[str, Any]) -> "SupabaseUser":
         """
         Crear una instancia de SupabaseUser desde un diccionario
 
@@ -111,7 +112,7 @@ class SupabaseUser:
 
         return cls(**data)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convertir la entidad a un diccionario
 

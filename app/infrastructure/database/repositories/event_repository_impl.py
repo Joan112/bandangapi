@@ -37,8 +37,8 @@ class EventRepositoryImpl(EventRepository):
             SupabaseError: Si ocurre un error durante la comunicación con Supabase.
         """
         try:
-            # Usar cliente admin para bypassar RLS
-            client = await self._supabase_client.admin_client
+            # Usar cliente regular (RLS permite insertar eventos públicamente)
+            client = await self._supabase_client.client
 
             # Convertir el DTO (dataclass) a diccionario
             event_dict = asdict(event_data)

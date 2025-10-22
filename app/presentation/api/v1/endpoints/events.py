@@ -4,9 +4,8 @@ Endpoint de la API para gestionar eventos.
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
-from app.core.dependencies import get_create_event_use_case, require_role
+from app.core.dependencies import get_create_event_use_case
 from app.core.exceptions import SupabaseError
-from app.domain.entities.supabase_user import SupabaseUser
 from app.domain.use_cases.events.create_event import CreateEventUseCase
 from app.presentation.api.v1.schemas.event import EventCreate, EventRead
 from app.presentation.middleware.rate_limit import limiter

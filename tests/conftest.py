@@ -4,7 +4,7 @@ Fixtures para pytest
 
 import asyncio
 import os
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -73,8 +73,11 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
 
     Mockea Supabase para evitar llamadas reales durante tests.
     """
-    from unittest.mock import AsyncMock, MagicMock
+    from unittest.mock import MagicMock
     from uuid import uuid4
+
+    # Deshabilitar rate limiter durante tests
+    monkeypatch.setattr("app.presentation.middleware.rate_limit.limiter.enabled", False)
 
     # Mock del cliente Supabase
     mock_supabase = MagicMock()
@@ -86,19 +89,21 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
         # Create mock user object
         mock_user = MagicMock()
         mock_user.id = user_id
-        mock_user.email = credentials.get('email')
+        mock_user.email = credentials.get("email")
         mock_user.user_metadata = {
-            'full_name': credentials.get('options', {}).get('data', {}).get('full_name', '')
+            "full_name": credentials.get("options", {})
+            .get("data", {})
+            .get("full_name", "")
         }
-        mock_user.created_at = '2024-01-01T00:00:00Z'
+        mock_user.created_at = "2024-01-01T00:00:00Z"
         mock_user.app_metadata = {}
-        mock_user.aud = 'authenticated'
+        mock_user.aud = "authenticated"
 
         # Create mock session
         mock_session = MagicMock()
-        mock_session.access_token = 'mock_access_token'
-        mock_session.refresh_token = 'mock_refresh_token'
-        mock_session.token_type = 'bearer'
+        mock_session.access_token = "mock_access_token"
+        mock_session.refresh_token = "mock_refresh_token"
+        mock_session.token_type = "bearer"
         mock_session.user = mock_user
 
         # Create mock response
@@ -115,17 +120,17 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
         # Create mock user object
         mock_user = MagicMock()
         mock_user.id = user_id
-        mock_user.email = credentials.get('email')
-        mock_user.user_metadata = {'full_name': 'Test User'}
-        mock_user.created_at = '2024-01-01T00:00:00Z'
+        mock_user.email = credentials.get("email")
+        mock_user.user_metadata = {"full_name": "Test User"}
+        mock_user.created_at = "2024-01-01T00:00:00Z"
         mock_user.app_metadata = {}
-        mock_user.aud = 'authenticated'
+        mock_user.aud = "authenticated"
 
         # Create mock session
         mock_session = MagicMock()
-        mock_session.access_token = 'mock_access_token'
-        mock_session.refresh_token = 'mock_refresh_token'
-        mock_session.token_type = 'bearer'
+        mock_session.access_token = "mock_access_token"
+        mock_session.refresh_token = "mock_refresh_token"
+        mock_session.token_type = "bearer"
         mock_session.user = mock_user
 
         # Create mock response
@@ -137,8 +142,10 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
 
     # Mock de admin methods
     mock_admin = MagicMock()
+
     async def mock_update_user_by_id(user_id, data):
         return MagicMock()  # Éxito
+
     mock_admin.update_user_by_id = mock_update_user_by_id
     mock_supabase.auth.admin = mock_admin
 
@@ -167,8 +174,14 @@ async def client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
     mock_supabase.table.return_value = mock_table
 
     # Patchear el cliente Supabase
-    monkeypatch.setattr('app.infrastructure.external.supabase.client.supabase_client._client', mock_supabase)
-    monkeypatch.setattr('app.infrastructure.external.supabase.client.supabase_client._admin_client', mock_supabase)
+    monkeypatch.setattr(
+        "app.infrastructure.external.supabase.client.supabase_client._client",
+        mock_supabase,
+    )
+    monkeypatch.setattr(
+        "app.infrastructure.external.supabase.client.supabase_client._admin_client",
+        mock_supabase,
+    )
 
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac

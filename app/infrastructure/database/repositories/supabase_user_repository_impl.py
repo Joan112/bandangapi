@@ -81,7 +81,9 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
             return SupabaseUser.from_dict(user_data)
         except Exception as e:
             # Usar logging estructurado para auditoría y debugging
-            logger.error(f"Error al obtener usuario por ID {user_id}: {type(e).__name__} - {str(e)}")
+            logger.error(
+                f"Error al obtener usuario por ID {user_id}: {type(e).__name__} - {str(e)}"
+            )
             return None
 
     async def get_by_email(self, email: str) -> SupabaseUser | None:
@@ -106,7 +108,9 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
 
             return SupabaseUser.from_dict(response.data[0])
         except Exception as e:
-            logger.error(f"Error al obtener usuario por email {email}: {type(e).__name__} - {str(e)}")
+            logger.error(
+                f"Error al obtener usuario por email {email}: {type(e).__name__} - {str(e)}"
+            )
             return None
 
     async def list_users(
@@ -167,10 +171,7 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
             # 1. Verificar si ya existe un perfil con ese email para evitar errores.
             # NOTA: Usar cliente regular para verificación (respeta RLS)
             existing_profile = (
-                await client.table("profiles")
-                .select("id")
-                .eq("email", email)
-                .execute()
+                await client.table("profiles").select("id").eq("email", email).execute()
             )
             if existing_profile.data:
                 raise DuplicateEntityError("Usuario", "email", email)
@@ -424,7 +425,9 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
         except Exception as e:
             # El cliente de Supabase puede lanzar una excepción con detalles
             # si el email no está confirmado, por ejemplo.
-            logger.error(f"Error de autenticación en Supabase: {type(e).__name__} - {str(e)}")
+            logger.error(
+                f"Error de autenticación en Supabase: {type(e).__name__} - {str(e)}"
+            )
             return None
 
     # Métodos wrapper genéricos para compatibilidad con endpoints
@@ -442,11 +445,14 @@ class SupabaseUserRepositoryImpl(SupabaseUserRepository):
         Returns:
             Lista de usuarios
         """
-        return await self.list_users(skip=skip, limit=limit, role=role)
+        # Convertir string a UserRole si es necesario
+        role_enum: UserRole | None = None
+        if role is not None:
+            role_enum = UserRole(role)
 
-    async def update(
-        self, user_id: UUID, update_data: dict[str, Any]
-    ) -> SupabaseUser:
+        return await self.list_users(skip=skip, limit=limit, role=role_enum)
+
+    async def update(self, user_id: UUID, update_data: dict[str, Any]) -> SupabaseUser:
         """
         Wrapper genérico para update_user.
 

@@ -15,7 +15,7 @@ from app.core.security import (
 
 def test_password_hashing():
     """Test de hashing de passwords"""
-    password = "TestPassword123"
+    password = "TestPassword123!"
     hashed = get_password_hash(password)
 
     # El hash no debe ser igual al password
@@ -30,30 +30,35 @@ def test_password_hashing():
 
 def test_password_strength_validation():
     """Test de validación de fortaleza de password"""
-    # Password válido
-    is_valid, message = validate_password_strength("ValidPass123")
+    # Password válido (con todos los requisitos)
+    is_valid, message = validate_password_strength("ValidPass123!")
     assert is_valid is True
     assert message == ""
 
     # Password muy corto
-    is_valid, message = validate_password_strength("Short1")
+    is_valid, message = validate_password_strength("Short1!")
     assert is_valid is False
     assert "caracteres" in message.lower()
 
     # Sin mayúsculas
-    is_valid, message = validate_password_strength("lowercase123")
+    is_valid, message = validate_password_strength("lowercase123!")
     assert is_valid is False
     assert "mayúscula" in message.lower()
 
     # Sin minúsculas
-    is_valid, message = validate_password_strength("UPPERCASE123")
+    is_valid, message = validate_password_strength("UPPERCASE123!")
     assert is_valid is False
     assert "minúscula" in message.lower()
 
     # Sin números
-    is_valid, message = validate_password_strength("NoNumbers")
+    is_valid, message = validate_password_strength("NoNumbers!")
     assert is_valid is False
     assert "número" in message.lower()
+
+    # Sin carácter especial
+    is_valid, message = validate_password_strength("ValidPass123")
+    assert is_valid is False
+    assert "especial" in message.lower()
 
 
 def test_jwt_token_creation_and_decoding():

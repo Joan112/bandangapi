@@ -37,8 +37,8 @@ class MultimediaRepositoryImpl(MultimediaRepository):
             SupabaseError: Si ocurre un error durante la comunicación con Supabase.
         """
         try:
-            # Usar cliente admin para bypassar RLS
-            client = await self._supabase_client.admin_client
+            # Usar cliente regular - las RLS policies manejarán los permisos
+            client = await self._supabase_client.client
 
             response = (
                 await client.table(self._table_name).insert(multimedia_data).execute()
@@ -166,7 +166,8 @@ class MultimediaRepositoryImpl(MultimediaRepository):
             if not existing:
                 raise EntityNotFoundError("Multimedia", str(multimedia_id))
 
-            client = await self._supabase_client.admin_client
+            # Usar cliente regular - las RLS policies manejarán los permisos
+            client = await self._supabase_client.client
 
             response = (
                 await client.table(self._table_name)
@@ -213,7 +214,8 @@ class MultimediaRepositoryImpl(MultimediaRepository):
             if not existing:
                 raise EntityNotFoundError("Multimedia", str(multimedia_id))
 
-            client = await self._supabase_client.admin_client
+            # Usar cliente regular - las RLS policies manejarán los permisos
+            client = await self._supabase_client.client
 
             await client.table(self._table_name).delete().eq(
                 "id", str(multimedia_id)

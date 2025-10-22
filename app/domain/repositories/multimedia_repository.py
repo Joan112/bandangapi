@@ -3,6 +3,7 @@ Interfaz del repositorio de multimedia (puerto en arquitectura hexagonal).
 """
 
 from abc import ABC, abstractmethod
+from typing import Any
 from uuid import UUID
 
 from app.domain.entities.multimedia import Multimedia
@@ -15,7 +16,7 @@ class MultimediaRepository(ABC):
     """
 
     @abstractmethod
-    async def create(self, multimedia_data: dict) -> Multimedia:
+    async def create(self, multimedia_data: dict[str, Any]) -> Multimedia:
         """
         Crea un nuevo contenido multimedia en el repositorio.
 
@@ -67,7 +68,9 @@ class MultimediaRepository(ABC):
         pass
 
     @abstractmethod
-    async def update(self, multimedia_id: UUID, multimedia_data: dict) -> Multimedia:
+    async def update(
+        self, multimedia_id: UUID, multimedia_data: dict[str, Any]
+    ) -> Multimedia:
         """
         Actualiza un contenido multimedia existente.
 
