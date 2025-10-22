@@ -5,7 +5,7 @@ Endpoints de health check
 from fastapi import APIRouter, status
 from pydantic import BaseModel
 
-router = APIRouter(tags=["Health"])
+router = APIRouter()
 
 
 class HealthResponse(BaseModel):

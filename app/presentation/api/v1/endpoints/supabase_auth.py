@@ -24,7 +24,7 @@ from app.presentation.api.v1.schemas.supabase_auth import (
 )
 from app.presentation.middleware.rate_limit import limiter
 
-router = APIRouter(tags=["auth"])
+router = APIRouter()
 
 
 def get_supabase_user_repository() -> SupabaseUserRepositoryImpl:

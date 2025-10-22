@@ -14,7 +14,7 @@ from app.infrastructure.database.repositories.supabase_user_repository_impl impo
 )
 from app.presentation.api.v1.schemas.supabase_auth import UserResponse, UserUpdate
 
-router = APIRouter(tags=["users"])
+router = APIRouter()
 
 
 def get_supabase_user_repository() -> SupabaseUserRepositoryImpl:

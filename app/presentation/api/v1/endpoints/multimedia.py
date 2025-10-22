@@ -26,7 +26,6 @@ router = APIRouter()
     status_code=status.HTTP_201_CREATED,
     summary="Crear nuevo contenido multimedia",
     description="Registra un nuevo contenido multimedia (imagen o video) en el sistema. Requiere rol ADMIN.",
-    tags=["Multimedia"],
 )
 async def create_multimedia(
     multimedia_data: MultimediaCreate,
@@ -64,7 +63,6 @@ async def create_multimedia(
     response_model=MultimediaListResponse,
     summary="Listar contenido multimedia",
     description="Obtiene una lista de contenidos multimedia con filtros opcionales. Requiere autenticación.",
-    tags=["Multimedia"],
 )
 async def list_multimedia(
     skip: int = Query(0, ge=0, description="Número de elementos a omitir"),
@@ -117,7 +115,6 @@ async def list_multimedia(
     response_model=MultimediaRead,
     summary="Obtener contenido multimedia por ID",
     description="Obtiene un contenido multimedia específico por su ID. Requiere autenticación.",
-    tags=["Multimedia"],
 )
 async def get_multimedia(
     multimedia_id: UUID,
@@ -160,7 +157,6 @@ async def get_multimedia(
     response_model=MultimediaRead,
     summary="Actualizar contenido multimedia",
     description="Actualiza un contenido multimedia existente. Requiere rol ADMIN.",
-    tags=["Multimedia"],
 )
 async def update_multimedia(
     multimedia_id: UUID,
@@ -210,7 +206,6 @@ async def update_multimedia(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Eliminar contenido multimedia",
     description="Elimina un contenido multimedia del sistema. Requiere rol ADMIN.",
-    tags=["Multimedia"],
 )
 async def delete_multimedia(
     multimedia_id: UUID,

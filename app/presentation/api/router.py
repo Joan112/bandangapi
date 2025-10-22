@@ -14,17 +14,17 @@ from app.presentation.api.v1.endpoints import (
 
 api_router = APIRouter()
 
-# Health check
-api_router.include_router(health.router, prefix="/health", tags=["Health"])
+# Health check - Estado del sistema
+api_router.include_router(health.router, prefix="/health", tags=["Salud"])
 
-# Supabase Auth
-api_router.include_router(supabase_auth.router, prefix="/auth", tags=["Authentication"])
+# Autenticación - Registro, login, logout, refresh token
+api_router.include_router(supabase_auth.router, prefix="/auth", tags=["Autenticación"])
 
-# Users
-api_router.include_router(users.router, prefix="/users", tags=["Users"])
+# Usuarios - Gestión de usuarios y perfiles
+api_router.include_router(users.router, prefix="/users", tags=["Usuarios"])
 
-# Events
+# Eventos - Gestión de eventos y cotizaciones
 api_router.include_router(events.router, prefix="/events", tags=["Eventos"])
 
-# Multimedia
+# Multimedia - Gestión de imágenes y videos
 api_router.include_router(multimedia.router, prefix="/multimedia", tags=["Multimedia"])
