@@ -42,8 +42,10 @@ class EventRepositoryImpl(EventRepository):
             SupabaseError: Si ocurre un error durante la comunicación con Supabase.
         """
         try:
-            # Usar cliente regular (RLS permite insertar eventos públicamente)
-            client = await self._supabase_client.client
+            # SECURITY: Usar admin_client para bypass RLS en endpoint público controlado.
+            # Este endpoint tiene rate limiting (5/hour) y validación Pydantic estricta.
+            # Los eventos se crean con status='pending' para revisión manual.
+            client = await self._supabase_client.admin_client
 
             # Convertir el DTO (dataclass) a diccionario
             event_dict = asdict(event_data)
